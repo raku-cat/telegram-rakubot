@@ -18,7 +18,8 @@ if not os.path.exists(memedir):
     os.makedirs(memdir)
 memeindex = memedir + 'memeindex.json'
 if not os.path.exists(memeindex):
-    open(memeindex, 'wb')
+    with open(memeindex, 'w') as f:
+        json.dump({'files' : {}, 'quotes' : {} }, f)
 
 
 def handler(msg):
@@ -32,7 +33,7 @@ def handler(msg):
             reply_id = 'None'
         command = msg['text'].lower()
         if command.startswith('/store'):
-            pprint(reply, width=1)
+            #pprint(reply, width=1)
             bot.sendChatAction(chat_id, 'typing')
             try:
                 mem = command.split(' ', 1)[1]
@@ -66,17 +67,21 @@ def handler(msg):
                     ext = file_url.split('.')[3]
                     ext = '.' + ext
                     namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
-                    memedex = { 'files' : { mem : { 'filename' : namevar, 'mtype' : mtype } } }
-                    print(memedex)
-                    memeson = json.dumps(memedex, indent=4)
-                    #print(memeson)
+                    memedex = { mem : { 'filename' : namevar, 'mtype' : mtype } }
+                    #print(memedex)
                     with open(memeindex) as f:
                         memefeed = json.load(f)
-                    memefeed.update(memeson)
-                    with open(memeindex, 'wb') as f:
-                        json.dump(memefeed, f)
+                    try:
+                        memefeed['files'][mem]
+                        bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+                        return
+                    except KeyError:
+                        pass
+                    memefeed['files'].update(memedex)
+                    with open(memeindex, 'w') as f:
+                        json.dump(memefeed, f, indent=2)
                     response = requests.get(file_url, stream=True)
-                    with open(memedir + namevar + '.' + ext, 'wb') as out_file:
+                    with open(memedir + namevar, 'wb') as out_file:
                         shutil.copyfileobj(response.raw, out_file)
                     del response
                     bot.sendMessage(chat_id, 'Meme stored, send with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
@@ -87,18 +92,16 @@ def handler(msg):
                 mem = command.split(' ', 1)[1]
             except IndexError:
                 return
+            with open(memeindex) as f:
+                memefeed = json.load(f)
             try:
-                for infile in glob.glob(os.path.join(memedir, mem + '.*')):
-                    meme = open(infile, 'rb')
-            except FileNotFoundError:
+                memekey = memefeed['files'][mem]
+            except KeyError:
                 bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
                 return
             bot.sendChatAction(chat_id, 'typing')
-            m = magic.open(magic.MAGIC_MIME)
-            m.load()
-            memtype = m.file(str(glob.glob(os.path.join(memedir, mem + '.*'))[0])).split('/')[0]
-            m.close()
-            #print(memtype)
+            memtype = memekey['mtype']
+            meme = open(memedir + memekey['filename'], 'rb')
             if memtype == 'audio':
                 bot.sendAudio(chat_id, meme, reply_to_message_id=reply_id)
             elif memtype == 'video':
