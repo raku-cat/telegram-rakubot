@@ -5,7 +5,6 @@ import json
 import requests
 import datetime
 import os
-import shutil
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -30,7 +29,6 @@ def handler(msg):
             reply_id = 'None'
         command = msg['text'].lower()
         if command.startswith('/store'):
-            #pprint(reply, width=1)
             bot.sendChatAction(chat_id, 'typing')
             try:
                 mem = command.split(' ', 1)[1]
@@ -60,8 +58,6 @@ def handler(msg):
                                     authname = '@' + reply['from']['username']
                                     quotetext = reply['text']
                                     mtype = 'quote'
-                                    print(authname)
-                                    print(quotetext)
                                 except KeyError:
                                     bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
                     with open(memeindex) as f:
