@@ -5,9 +5,6 @@ import json
 import requests
 import datetime
 import os
-import glob
-import magic
-from pprint import pprint
 import shutil
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
@@ -67,51 +64,37 @@ def handler(msg):
                                     print(quotetext)
                                 except KeyError:
                                     bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
+                    with open(memeindex) as f:
+                        memefeed = json.load(f)
+                    try:
+                        memefeed['files'][mem]
+                    except KeyError:
+                        try:
+                            memefeed['quotes'][mem]
+                            bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+                            return
+                        except KeyError:
+                            pass
                     if mtype in ['video', 'audio', 'photo']:
                         file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + bot.getFile(file_id)['file_path']
                         ext = file_url.split('.')[3]
                         ext = '.' + ext
                         namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
                         memedex = { mem : { 'filename' : namevar, 'mtype' : mtype } }
-                        with open(memeindex) as f:
-                            memefeed = json.load(f)
-                        try:
-                            memefeed['files'][mem]
-                        except KeyError:
-                            try:
-                                memefeed['quotes'][mem]
-                                bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                                return
-                            except KeyError:
-                                pass
                         memefeed['files'].update(memedex)
-                        with open(memeindex, 'w') as f:
-                            json.dump(memefeed, f, indent=2)
-                        response = requests.get(file_url, stream=True)
-                        with open(memedir + namevar, 'wb') as out_file:
-                            shutil.copyfileobj(response.raw, out_file)
-                        del response
-                        bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+                        r = requests.get(file_url)
+                        if r.status_code == 200:
+                            with open(memedir + namevar, 'wb') as f:
+                                for chunk in r:
+                                    f.write(chunk)
+                        else:
+                            bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
                     elif mtype == 'quote':
                         memedex = { mem : { 'text' : quotetext, 'author' : authname } }
-                        with open(memeindex) as f:
-                            memefeed = json.load(f)
-                        try:
-                            memefeed['quotes'][mem]
-                        except KeyError:
-                            try:
-                                memefeed['files'][mem]
-                                bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                                return
-                            except KeyError:
-                                pass
                         memefeed['quotes'].update(memedex)
-                        with open(memeindex, 'w') as f:
-                            json.dump(memefeed, f, indent=2)
-                        bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
-            #        else:
-            #            bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
-            #            return
+                    with open(memeindex, 'w') as f:
+                        json.dump(memefeed, f, indent=2)
+                    bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
             except KeyError:
                     bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                     return
