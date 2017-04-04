@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import sys
 import telepot
+import telepot.aio
+import asyncio, aiofiles, aiohttp
 import json
 import requests
 import datetime
@@ -8,7 +10,8 @@ import os
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
-bot = telepot.Bot(key['telegram'])
+bot = telepot.aio.Bot(key['telegram'])
+loop = asyncio.get_event_loop()
 memedir = sys.path[0] + '/memes/'
 if not os.path.exists(memedir):
     os.makedirs(memdir)
@@ -18,7 +21,7 @@ if not os.path.exists(memeindex):
         json.dump({'files' : {}, 'quotes' : {'mtype' : 'quote'} }, f)
 
 
-def handler(msg):
+async def handler(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
     if content_type == 'text':
@@ -29,11 +32,11 @@ def handler(msg):
             reply_id = 'None'
         command = msg['text'].lower()
         if command.startswith('/store'):
-            bot.sendChatAction(chat_id, 'typing')
+            await bot.sendChatAction(chat_id, 'typing')
             try:
                 mem = command.split(' ', 1)[1]
             except IndexError:
-                bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
+                await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
                 return
             try:
                 if reply:
@@ -59,57 +62,64 @@ def handler(msg):
                                     quotetext = reply['text']
                                     mtype = 'quote'
                                 except KeyError:
-                                    bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
-                    with open(memeindex) as f:
-                        memefeed = json.load(f)
+                                    await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
+                    async with aiofiles.open(memeindex) as f:
+                        memefeed = json.loads(await f.read())
                     try:
                         memefeed['files'][mem]
+                        await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+                        return
                     except KeyError:
                         try:
                             memefeed['quotes'][mem]
-                            bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+                            await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
                             return
                         except KeyError:
                             pass
                     if mtype in ['video', 'audio', 'photo']:
-                        file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + bot.getFile(file_id)['file_path']
+                        file_path = await bot.getFile(file_id)
+                        file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
                         ext = file_url.split('.')[3]
                         ext = '.' + ext
                         namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
                         memedex = { mem : { 'filename' : namevar, 'mtype' : mtype } }
                         memefeed['files'].update(memedex)
-                        r = requests.get(file_url)
-                        if r.status_code == 200:
-                            with open(memedir + namevar, 'wb') as f:
-                                for chunk in r:
-                                    f.write(chunk)
-                        else:
-                            bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(file_url) as r:
+                                if r.status == 200:
+                                    async with aiofiles.open(memedir + namevar, 'wb') as f:
+                                        while True:
+                                            chunk = await r.content.read(128)
+                                            if not chunk:
+                                                break
+                                            await f.write(chunk)
+                                else:
+                                    await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
                     elif mtype == 'quote':
                         memedex = { mem : { 'text' : quotetext, 'author' : authname } }
                         memefeed['quotes'].update(memedex)
                     with open(memeindex, 'w') as f:
                         json.dump(memefeed, f, indent=2)
-                    bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+                    await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
             except KeyError:
-                    bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+                    await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                     return
         elif command.startswith('/meme'):
             try:
                 mem = command.split(' ', 1)[1]
             except IndexError:
                 return
-            with open(memeindex) as f:
-                memefeed = json.load(f)
+            async with aiofiles.open(memeindex) as f:
+                memefeed = json.loads(await f.read())
             try:
                 memekey = memefeed['files'][mem]
             except KeyError:
                 try:
                     memekey = memefeed['quotes'][mem]
                 except KeyError:
-                        bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+                        await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
                         return
-            bot.sendChatAction(chat_id, 'typing')
+            await bot.sendChatAction(chat_id, 'typing')
             try:
                 memtype = memekey['mtype']
             except KeyError:
@@ -117,23 +127,26 @@ def handler(msg):
             try:
                 if memtype in  ['video', 'audio', 'photo']:
                     try:
-                        meme = open(memedir + memekey['filename'], 'rb')
+                        async with aiofiles.open(memedir + memekey['filename'], 'rb') as m:
+                            meme = await m.read()
                     except:
                         bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                 if memtype == 'audio':
-                    bot.sendAudio(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendAudio(chat_id, meme, reply_to_message_id=reply_id)
                 elif memtype == 'video':
-                    bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id)
                 elif memtype == 'photo':
-                    bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id)
                 else:
-                    bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+                    await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                     return
             except UnboundLocalError:
-                bot.sendMessage(chat_id, memekey['text'] + '\n  _-' + memekey['author'] + '_', reply_to_message_id=reply_id, parse_mode='Markdown')
+               await bot.sendMessage(chat_id, memekey['text'] + '\n  -' + memekey['author'], reply_to_message_id=reply_id)
         else:
             return
     else:
         return
 
-bot.message_loop(handler, run_forever='Started...')
+loop.create_task(bot.message_loop(handler))
+print('Started...')
+loop.run_forever()
