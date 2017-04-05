@@ -37,7 +37,6 @@ async def handler(msg):
                 mem = command.split(' ', 1)[1]
             except IndexError:
                 await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
-                return
             try:
                 if reply:
                     try:
@@ -68,12 +67,10 @@ async def handler(msg):
                     try:
                         memefeed['files'][mem]
                         await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                        return
                     except KeyError:
                         try:
                             memefeed['quotes'][mem]
                             await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                            return
                         except KeyError:
                             pass
                     if mtype in ['video', 'audio', 'photo']:
@@ -103,7 +100,6 @@ async def handler(msg):
                     await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
             except KeyError:
                     await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
-                    return
         elif command.startswith('/meme'):
             try:
                 mem = command.split(' ', 1)[1]
@@ -118,7 +114,6 @@ async def handler(msg):
                     memekey = memefeed['quotes'][mem]
                 except KeyError:
                         await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
-                        return
             await bot.sendChatAction(chat_id, 'typing')
             try:
                 memtype = memekey['mtype']
@@ -132,18 +127,32 @@ async def handler(msg):
                     except:
                         bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                 if memtype == 'audio':
-                    await bot.sendAudio(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
                 elif memtype == 'video':
                     await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id)
                 elif memtype == 'photo':
                     await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id)
                 else:
                     await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
-                    return
             except UnboundLocalError:
                await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>-' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
-        else:
-            return
+        elif command.startswith('/list'):
+            if chat_type != 'private':
+                await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
+            else:
+                async with aiofiles.open(memeindex) as f:
+                    memefeed = json.loads(await f.read())
+                temp = list()
+                for key in memefeed.keys():
+                    temp.append(list(memefeed[key]))
+                temp = temp[0] + temp[1]
+                memlist = list()
+                for i in temp:
+                    formatt = '- ' + i + '\n'
+                    memlist.append(formatt)
+                memelist = ''.join(memlist)
+                #memelist = ', '.join(memelist).replace('\\\\', '\\')
+                await bot.sendMessage(chat_id, memelist, parse_mode='html')
     else:
         return
 
