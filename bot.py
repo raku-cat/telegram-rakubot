@@ -141,7 +141,7 @@ async def handler(msg):
                     await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
                     return
             except UnboundLocalError:
-               await bot.sendMessage(chat_id, memekey['text'] + '\n  -' + memekey['author'], reply_to_message_id=reply_id)
+               await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>-' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
         else:
             return
     else:
