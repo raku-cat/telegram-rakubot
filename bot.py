@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import sys
-import telepot
-import telepot.aio
+import telepot, telepot.aio
 import asyncio, aiofiles, aiohttp
 import json
-import requests
 import datetime
 import os
 
@@ -98,8 +96,8 @@ async def handler(msg):
                     with open(memeindex, 'w') as f:
                         json.dump(memefeed, f, indent=2)
                     await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
-            except KeyError:
-                    await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+            except UnboundLocalError:
+                return
         elif command.startswith('/meme'):
             try:
                 mem = command.split(' ', 1)[1]
@@ -114,6 +112,7 @@ async def handler(msg):
                     memekey = memefeed['quotes'][mem]
                 except KeyError:
                         await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+                        return
             await bot.sendChatAction(chat_id, 'typing')
             try:
                 memtype = memekey['mtype']
