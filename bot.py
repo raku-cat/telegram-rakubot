@@ -20,6 +20,7 @@ if not os.path.exists(memeindex):
 
 
 async def handler(msg):
+    key = json.load(open(sys.path[0] + '/keys.json'))
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
     if content_type == 'text':
