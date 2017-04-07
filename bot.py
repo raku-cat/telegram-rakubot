@@ -20,7 +20,6 @@ if not os.path.exists(memeindex):
 
 
 async def handler(msg):
-    key = json.load(open(sys.path[0] + '/keys.json'))
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
     if content_type == 'text':
@@ -143,15 +142,14 @@ async def handler(msg):
                 async with aiofiles.open(memeindex) as f:
                     memefeed = json.loads(await f.read())
                 temp = list()
-                for key in memefeed.keys():
-                    temp.append(list(memefeed[key]))
+                for k in memefeed.keys():
+                    temp.append(list(memefeed[k]))
                 temp = temp[0] + temp[1]
                 memlist = list()
                 for i in temp:
                     formatt = '- ' + i + '\n'
                     memlist.append(formatt)
                 memelist = ''.join(memlist)
-                #memelist = ', '.join(memelist).replace('\\\\', '\\')
                 await bot.sendMessage(chat_id, memelist, parse_mode='html')
     else:
         return
