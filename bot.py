@@ -59,7 +59,11 @@ async def handler(msg):
                                     quotetext = reply['text']
                                     mtype = 'quote'
                                 except KeyError:
-                                    await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
+                                    try:
+                                        file_id = reply['voice']['file_id']
+                                        mtype = 'audio'
+                                    except KeyError:
+                                        await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
                     async with aiofiles.open(memeindex) as f:
                         memefeed = json.loads(await f.read())
                     try:
