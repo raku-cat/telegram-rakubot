@@ -22,6 +22,7 @@ if not os.path.exists(memeindex):
 async def handler(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
+    from_id = msg['from']['id']
     if content_type == 'text':
         try:
             reply = msg['reply_to_message']
@@ -155,6 +156,31 @@ async def handler(msg):
                     memlist.append(formatt)
                 memelist = ''.join(memlist)
                 await bot.sendMessage(chat_id, memelist, parse_mode='html')
+        elif command.startswith('/delet'):
+            if from_id == 105301944:
+                try:
+                    mem = command.split(' ', 1)[1]
+                except IndexError:
+                    return
+                async with aiofiles.open(memeindex) as f:
+                    memefeed = json.loads(await f.read())
+                try:
+                    memekey = memefeed['files'][mem]
+                except KeyError:
+                    try:
+                        memekey = memefeed['quotes'][mem]
+                    except KeyError:
+                        await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+                        return
+                try:
+                    memef = memedir + memekey['filename']
+                    os.remove(memef)
+                    del memefeed['files'][mem]
+                except KeyError:
+                    del memefeed['quotes'][mem]
+                with open(memeindex, 'w') as f:
+                    json.dump(memefeed, f, indent=2)
+                await bot.sendMessage(chat_id, 'Meme baleet >:U', reply_to_message_id=msg_id)
     else:
         return
 
