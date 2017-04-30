@@ -5,13 +5,11 @@ import asyncio, aiofiles, aiohttp
 import json
 import datetime
 import os
-import regex
-from telepot.aio.helper import InlineUserHandler, AnswererMixin
-from telepot.aio.delegate import per_inline_from_id, create_open, pave_event_space
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
+loop = asyncio.get_event_loop()
 memedir = sys.path[0] + '/memes/'
 if not os.path.exists(memedir):
     os.makedirs(memdir)
@@ -37,7 +35,6 @@ async def handler(msg):
                 mem = command.split(' ', 1)[1]
             except IndexError:
                 await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
-                return
             try:
                 if reply:
                     try:
@@ -67,27 +64,22 @@ async def handler(msg):
                                         mtype = 'audio'
                                     except KeyError:
                                         await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
-                                        return
                     async with aiofiles.open(memeindex) as f:
                         memefeed = json.loads(await f.read())
                     try:
                         memefeed['files'][mem]
                         await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                        return
                     except KeyError:
                         try:
                             memefeed['quotes'][mem]
                             await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                            return
                         except KeyError:
                             pass
                     if mtype in ['video', 'audio', 'photo']:
                         file_path = await bot.getFile(file_id)
                         file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
-                        try:
-                            ext = '.' + file_url.split('.')[3]
-                        except IndexError:
-                            ext = ''
+                        ext = file_url.split('.')[3]
+                        ext = '.' + ext
                         namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
                         memedex = { mem : { 'filename' : namevar, 'mtype' : mtype } }
                         memefeed['files'].update(memedex)
@@ -102,14 +94,12 @@ async def handler(msg):
                                             await f.write(chunk)
                                 else:
                                     await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
-                                    return
                     elif mtype == 'quote':
                         memedex = { mem : { 'text' : quotetext, 'author' : authname } }
                         memefeed['quotes'].update(memedex)
                     with open(memeindex, 'w') as f:
                         json.dump(memefeed, f, indent=2)
                     await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
-                    return
             except UnboundLocalError:
                 return
         elif command.startswith('/meme'):
@@ -148,7 +138,7 @@ async def handler(msg):
                 else:
                     await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
             except UnboundLocalError:
-               await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>— ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+               await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>-' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
         elif command.startswith('/list'):
             if chat_type != 'private':
                 await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
@@ -168,20 +158,6 @@ async def handler(msg):
     else:
         return
 
-async def iq_handler(msg):
-    query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
-    async with aiofiles.open(memeindex) as f:
-        memefeed = json.loads(await f.read())
-    qstring = query_string.lower()
-    print([value for key, value in memefeed.items() if regex.search(query_string, key)])
-
-async def iq_choice_handler(msg):
-    return
-
-answerer = telepot.aio.helper.Answerer(bot)
-loop = asyncio.get_event_loop()
-loop.create_task(bot.message_loop({'chat' : handler,
-                                   'inline_query' : iq_handler,
-                                   'chosen_inlline_result' : iq_choice_handler}))
+loop.create_task(bot.message_loop(handler))
 print('Started...')
 loop.run_forever()
