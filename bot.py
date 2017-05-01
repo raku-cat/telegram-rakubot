@@ -5,9 +5,11 @@ import asyncio, aiofiles, aiohttp
 import json
 import datetime
 import os
+import random
 import regex
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.aio.delegate import per_inline_from_id, create_open, pave_event_space
+from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -196,18 +198,38 @@ async def handler(msg):
 
 async def iq_handler(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
+    memeslist = []
     async with aiofiles.open(memeindex) as f:
         memefeed = json.loads(await f.read())
     qstring = query_string.lower()
-    print([value for key, value in memefeed.items() if regex.search(query_string, key)])
-
-async def iq_choice_handler(msg):
+    async def compute():
+        for i in list(memefeed['quotes'].keys()):
+            if regex.search(qstring, i):
+                #print(memefeed['quotes'][i]['text'])
+                memeslist.append(InlineQueryResultArticle(
+                                    id=str(random.randint(0,500)),
+                                    title=i,
+                                    input_message_content=InputTextMessageContent(
+                                                            message_text=await quote_getter(qstring),
+                                                            parse_mode='html')
+                                ))
+        return memeslist
+    answerer.answer(msg, compute)
+async def quote_getter(qname):
+    async with aiofiles.open(memeindex) as f:
+        memefeed = json.loads(await f.read())
+    memefeed = memefeed['quotes']
+    for i in list(memefeed.keys()):
+        if regex.search(qname, i):
+            memetext = memefeed[i]
+            quotetext = memetext['text'] + '\n  <i>— ' + memetext['author'] + '</i>'
+    return quotetext
+async def meme_getter(mname):
     return
-
+    
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()
 loop.create_task(bot.message_loop({'chat' : handler,
-                                   'inline_query' : iq_handler,
-                                   'chosen_inlline_result' : iq_choice_handler}))
+                                   'inline_query' : iq_handler}))
 print('Started...')
 loop.run_forever()
