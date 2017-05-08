@@ -8,8 +8,7 @@ import os
 import random
 import regex
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
-from telepot.aio.delegate import per_inline_from_id, create_open, pave_event_space
-from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent
+from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -20,13 +19,13 @@ if not os.path.exists(memedir):
 memeindex = memedir + 'memeindex.json'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
-        json.dump({'files' : {}, 'quotes' : {'mtype' : 'quote'} }, f)
+        json.dump({'files' : {}, 'quotes' : {}}, f)
 
-
-async def handler(msg):
+async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
     from_id = msg['from']['id']
+    #print(msg)
     if content_type == 'text':
         try:
             reply = msg['reply_to_message']
@@ -50,6 +49,10 @@ async def handler(msg):
                         try:
                             file_id = reply['photo'][-1]['file_id']
                             mtype = 'photo'
+                            try:
+                                caption = reply['caption']
+                            except KeyError:
+                                caption = ''
                         except KeyError:
                             try:
                                 file_id = reply['document']['file_id']
@@ -58,6 +61,10 @@ async def handler(msg):
                                     mtype = 'audio'
                                 elif dmtye == 'video':
                                     mtype = 'video'
+                                    try:
+                                        caption = reply['caption']
+                                    except KeyError:
+                                        caption = ''
                             except KeyError:
                                 try:
                                     reply['chat']
@@ -92,7 +99,7 @@ async def handler(msg):
                         except IndexError:
                             ext = ''
                         namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
-                        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype } }
+                        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption } }
                         memefeed['files'].update(memedex)
                         async with aiohttp.ClientSession() as session:
                             async with session.get(file_url) as r:
@@ -142,12 +149,16 @@ async def handler(msg):
                             meme = await m.read()
                     except:
                         bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+                    try:
+                        capvar = memekey['cap']
+                    except KeyError:
+                        capvar = ''
                 if memtype == 'audio':
                     await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
                 elif memtype == 'video':
-                    await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
                 elif memtype == 'photo':
-                    await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id)
+                    await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
                 else:
                     await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
             except UnboundLocalError:
@@ -196,40 +207,49 @@ async def handler(msg):
     else:
         return
 
-async def iq_handler(msg):
-    query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
+async def on_inline_query(msg):
+    query_id, from_id, query_string, offset = telepot.glance(msg, flavor='inline_query', long=True)
     memeslist = []
     async with aiofiles.open(memeindex) as f:
         memefeed = json.loads(await f.read())
     qstring = query_string.lower()
-    async def compute():
-        for i in list(memefeed['quotes'].keys()):
+    #texd = await quote_getter(qstring)
+    #print(texd)
+    next_offset = int(offset) if offset != '' else 0
+    def compute():
+        rnint = random.sample(range(5000), 50)
+        offset = next_offset
+        mlist = list(memefeed['quotes'].keys())
+        for i, n in zip(mlist, rnint):
             if regex.search(qstring, i):
-                #print(memefeed['quotes'][i]['text'])
+                memetext = memefeed['quotes'][i]
                 memeslist.append(InlineQueryResultArticle(
-                                    id=str(random.randint(0,500)),
-                                    title=i,
-                                    input_message_content=InputTextMessageContent(
-                                                            message_text=await quote_getter(qstring),
-                                                            parse_mode='html')
-                                ))
-        return memeslist
+                    id=str(n), title=i,
+                input_message_content=InputTextMessageContent(
+                    message_text=memetext['text'] + '\n <i>— ' + memetext['author'] + '</i>',
+                    parse_mode='html')
+        ))
+        return { 'results' : memeslist, 'cache_time' : 30 }
     answerer.answer(msg, compute)
-async def quote_getter(qname):
-    async with aiofiles.open(memeindex) as f:
-        memefeed = json.loads(await f.read())
-    memefeed = memefeed['quotes']
-    for i in list(memefeed.keys()):
-        if regex.search(qname, i):
-            memetext = memefeed[i]
-            quotetext = memetext['text'] + '\n  <i>— ' + memetext['author'] + '</i>'
-    return quotetext
+#async def quote_getter(qname):
+#    async with aiofiles.open(memeindex) as f:
+#        memefeed = json.loads(await f.read())
+#    qlist = memefeed['quotes']
+#    for i in list(qlist.keys()):
+#        if regex.search(qname, i):
+#            memetext = qlist[i]
+#            quotetext = memetext['text'] + '\n  <i>— ' + memetext['author'] + '</i>'
+#            memetitle = i
+#    return quotetext, memetitle
 async def meme_getter(mname):
+    return
+    
+async def storem(mname):
     return
     
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()
-loop.create_task(bot.message_loop({'chat' : handler,
-                                   'inline_query' : iq_handler}))
+loop.create_task(bot.message_loop({'chat' : on_command,
+                                   'inline_query' : on_inline_query}))
 print('Started...')
 loop.run_forever()
