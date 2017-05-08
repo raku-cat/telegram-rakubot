@@ -207,11 +207,12 @@ async def on_command(msg):
     else:
         return
 
-async def on_inline_query(msg):
+def on_inline_query(msg):
     query_id, from_id, query_string, offset = telepot.glance(msg, flavor='inline_query', long=True)
+    #print(msg)
     memeslist = []
-    async with aiofiles.open(memeindex) as f:
-        memefeed = json.loads(await f.read())
+    with open(memeindex) as f:
+        memefeed = json.loads(f.read())
     qstring = query_string.lower()
     #texd = await quote_getter(qstring)
     #print(texd)
@@ -219,31 +220,84 @@ async def on_inline_query(msg):
     def compute():
         rnint = random.sample(range(5000), 50)
         offset = next_offset
-        mlist = list(memefeed['quotes'].keys())
+        qlist = quote_getter(qstring)[offset:-1]
+        if len(qlist[offset:]) > 50:
+            qlist = qlist[offset:offset + 50]
+            offset=str(int(offset) + 51 )
+        else:
+            qlist = qlist[:50]
+            offset = ''
+        for i, n in zip(qlist, rnint):
+                for key, value in i.items():
+                    memetitle = key
+                    memetext = value['text']
+                    memeauthor = value['author']
+                    memeslist.append(InlineQueryResultArticle(
+                        id=str(n), title=memetitle,
+                    input_message_content=InputTextMessageContent(
+                        message_text=memetext + '\n <i>— ' + memeauthor + '</i>',
+                        parse_mode='html')
+            ))
+        mlist = meme_getter(qstring)
+        print(mlist)
+        rnint = random.sample(range(5000), 50)
         for i, n in zip(mlist, rnint):
-            if regex.search(qstring, i):
-                memetext = memefeed['quotes'][i]
-                memeslist.append(InlineQueryResultArticle(
-                    id=str(n), title=i,
-                input_message_content=InputTextMessageContent(
-                    message_text=memetext['text'] + '\n <i>— ' + memetext['author'] + '</i>',
-                    parse_mode='html')
-        ))
-        return { 'results' : memeslist, 'cache_time' : 30 }
+            for key, value in i.items():
+                memetitle = key
+                memetype = value['mtype']
+                memename = value['filename']
+                try:
+                    memecap = value['cap']
+                except KeyError:
+                    memecap = ''
+                if memetype == 'photo':
+                    memeslist.append(InlineQueryResultArticle(
+                        id=str(n), title=memetitle,
+                        input_message_content=InputTextMessageContent(
+                            message_text='<img src="https://rakutiki.tv/memes/' + memename + '">',
+                            parse_mode='html'),
+                            #message_text='o'),
+                        #photo_url='https://rakutiki.tv/memes/' + memename,
+                        #thumb_url='https://rakutiki.tv/memes/' + memename,
+                        #caption=memecap,
+                        #description=memetitle
+                        url='https://rakutiki.tv/memes/' + memename,
+                        hide_url=True,
+                        thumb_url='https://rakutiki.tv/memes/' + memename,
+                        ))
+                else:
+                    return
+                print(memeslist)
+        return { 'results' : memeslist, 'cache_time' : 30, 'next_offset' : offset }
     answerer.answer(msg, compute)
-#async def quote_getter(qname):
-#    async with aiofiles.open(memeindex) as f:
-#        memefeed = json.loads(await f.read())
-#    qlist = memefeed['quotes']
-#    for i in list(qlist.keys()):
-#        if regex.search(qname, i):
-#            memetext = qlist[i]
-#            quotetext = memetext['text'] + '\n  <i>— ' + memetext['author'] + '</i>'
-#            memetitle = i
-#    return quotetext, memetitle
-async def meme_getter(mname):
-    return
-    
+def quote_getter(qname):
+    with open(memeindex) as f:
+        memefeed = json.loads(f.read())
+    qlist = memefeed['quotes']
+    memelobj = []
+    for i in list(qlist.keys()):
+        if regex.search(qname, i):
+            memedict = {
+                    i: {
+                        'text': qlist[i]['text'],
+                        'author' : qlist[i]['author'],
+                    }
+                }
+            memelobj.append(memedict)
+    return memelobj
+
+def meme_getter(mname):
+    memelobj = []
+    with open(memeindex) as f:
+        memefeed = json.loads(f.read())
+    mlist = memefeed['files']
+    for i in list(mlist.keys()):
+        if regex.search(mname, i):
+            keys = [i]
+            mdict = {x:mlist[x] for x in keys}
+            memelobj.append(mdict)
+    return memelobj
+
 async def storem(mname):
     return
     
