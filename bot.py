@@ -9,6 +9,7 @@ import random
 import regex
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif
+from ffmpy import FFmpeg
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -20,7 +21,17 @@ memeindex = memedir + 'memeindex.json'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
-
+with open(memeindex) as f:
+    memefeed = json.loads(f.read())
+    for key, value in memefeed['files'].items():
+        if value['mtype'] == 'video':
+            if not os.path.exists(memedir + 't_' + value['filename'] + '.jpg'):
+                ff = FFmpeg(
+                    inputs={memedir + value['filename']: '-loglevel panic -y -ss 00:00:00'},
+                    outputs={memedir + 't_' + value['filename'] + '.jpg': '-vframes 1'}
+                )
+                #print(ff.cmd)
+                ff.run()
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(chat_type, content_type, chat_id)
@@ -218,9 +229,47 @@ def on_inline_query(msg):
     #print(texd)
     next_offset = int(offset) if offset != '' else 0
     def compute():
-        rnint = random.sample(range(5000), 50)
         offset = next_offset
+        mlist = meme_getter(qstring)
+        #print(mlist)
+        rnint = random.sample(range(5000), 50)
+        for i, n in zip(mlist, rnint):
+            for key, value in i.items():
+                memetitle = key
+                memetype = value['mtype']
+                memename = value['filename']
+                try:
+                    memecap = value['cap']
+                except KeyError:
+                    memecap = ''
+                if memetype == 'photo':
+                    memeslist.append(InlineQueryResultPhoto(
+                        id=str(n),
+                        title=memetitle,
+                        photo_url='https://rakutiki.tv/memes/' + memename,
+                        thumb_url='https://rakutiki.tv/memes/' + memename,
+                        caption=memecap
+                        ))
+                elif memetype == 'video':
+                    memeslist.append(InlineQueryResultVideo(
+                        id=str(n),
+                        title=memetitle,
+                        video_url='https://rakutiki.tv/memes/' + memename,
+                        mime_type='video/mp4',
+                        thumb_url='https://rakutiki.tv/memes/t_' + memename + '.jpg',
+                        caption=memecap
+                        ))
+                elif memetype == 'audio':
+                    memeslist.append(InlineQueryResultVoice(
+                        id=str(n),
+                        voice_url='https://rakutiki.tv/memes/' + memename,
+                        title=memetitle,
+                        caption=memecap
+                        ))
+                else:
+                    return
         qlist = quote_getter(qstring)[offset:-1]
+        rnint = random.sample(range(5000), 50)
         if len(qlist[offset:]) > 50:
             qlist = qlist[offset:offset + 50]
             offset=str(int(offset) + 51 )
@@ -234,40 +283,11 @@ def on_inline_query(msg):
                     memeauthor = value['author']
                     memeslist.append(InlineQueryResultArticle(
                         id=str(n), title=memetitle,
-                    input_message_content=InputTextMessageContent(
-                        message_text=memetext + '\n <i>— ' + memeauthor + '</i>',
-                        parse_mode='html')
-            ))
-        mlist = meme_getter(qstring)
-        print(mlist)
-        rnint = random.sample(range(5000), 50)
-        for i, n in zip(mlist, rnint):
-            for key, value in i.items():
-                memetitle = key
-                memetype = value['mtype']
-                memename = value['filename']
-                try:
-                    memecap = value['cap']
-                except KeyError:
-                    memecap = ''
-                if memetype == 'photo':
-                    memeslist.append(InlineQueryResultArticle(
-                        id=str(n), title=memetitle,
                         input_message_content=InputTextMessageContent(
-                            message_text='<img src="https://rakutiki.tv/memes/' + memename + '">',
-                            parse_mode='html'),
-                            #message_text='o'),
-                        #photo_url='https://rakutiki.tv/memes/' + memename,
-                        #thumb_url='https://rakutiki.tv/memes/' + memename,
-                        #caption=memecap,
-                        #description=memetitle
-                        url='https://rakutiki.tv/memes/' + memename,
-                        hide_url=True,
-                        thumb_url='https://rakutiki.tv/memes/' + memename,
-                        ))
-                else:
-                    return
-                print(memeslist)
+                            message_text=memetext + '\n <i>— ' + memeauthor + '</i>',
+                            parse_mode='html')
+            ))
+                #print(memeslist)
         return { 'results' : memeslist, 'cache_time' : 30, 'next_offset' : offset }
     answerer.answer(msg, compute)
 def quote_getter(qname):
