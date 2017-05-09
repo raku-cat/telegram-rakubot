@@ -289,7 +289,10 @@ def on_inline_query(msg):
             ))
                 #print(memeslist)
         return { 'results' : memeslist, 'cache_time' : 30, 'next_offset' : offset }
-    answerer.answer(msg, compute)
+    if len(qstring) > 0:
+        answerer.answer(msg, compute)
+    else:
+        return
 def quote_getter(qname):
     with open(memeindex) as f:
         memefeed = json.loads(f.read())
