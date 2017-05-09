@@ -8,6 +8,7 @@ import os
 import random
 import regex
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
+from telepot.aio.loop import MessageLoop
 from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif
 from ffmpy import FFmpeg
 
@@ -22,21 +23,28 @@ if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
 with open(memeindex) as f:
-    memefeed = json.loads(f.read())
-    for key, value in memefeed['files'].items():
-        if value['mtype'] == 'video':
-            if not os.path.exists(memedir + 't_' + value['filename'] + '.jpg'):
+    memefeeds = json.loads(f.read())
+    for keys, values in memefeeds['files'].items():
+        if values['mtype'] == 'video':
+            if not os.path.exists(memedir + 't_' + values['filename'] + '.jpg'):
                 ff = FFmpeg(
-                    inputs={memedir + value['filename']: '-loglevel panic -y -ss 00:00:00'},
-                    outputs={memedir + 't_' + value['filename'] + '.jpg': '-vframes 1'}
+                    inputs={memedir + values['filename']: '-loglevel panic -y -ss 00:00:00'},
+                    outputs={memedir + 't_' + values['filename'] + '.jpg': '-vframes 1'}
                 )
                 #print(ff.cmd)
                 ff.run()
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    #print(telepot.flavor(msg))
     #print(chat_type, content_type, chat_id)
     from_id = msg['from']['id']
     #print(msg)
+    try:
+        botcom = msg['entities'][0]['type']
+        if not botcom == 'bot_command':
+            return
+    except KeyError:
+        pass
     if content_type == 'text':
         try:
             reply = msg['reply_to_message']
@@ -323,10 +331,14 @@ def meme_getter(mname):
 
 async def storem(mname):
     return
+
+async def chosen_return(msg):
+    return
     
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()
-loop.create_task(bot.message_loop({'chat' : on_command,
-                                   'inline_query' : on_inline_query}))
+loop.create_task(MessageLoop(bot,{'chat' : on_command,
+                                   'inline_query' : on_inline_query,
+                                   'chosen_inline_result' : chosen_return}).run_forever())
 print('Started...')
 loop.run_forever()
