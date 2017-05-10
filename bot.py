@@ -15,6 +15,7 @@ from ffmpy import FFmpeg
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
+baseurl = key['baseurl']
 memedir = sys.path[0] + '/memes/'
 if not os.path.exists(memedir):
     os.makedirs(memdir)
@@ -254,23 +255,23 @@ def on_inline_query(msg):
                     memeslist.append(InlineQueryResultPhoto(
                         id=str(n),
                         title=memetitle,
-                        photo_url='https://rakutiki.tv/memes/' + memename,
-                        thumb_url='https://rakutiki.tv/memes/' + memename,
+                        photo_url=baseurl + 'memes/' + memename,
+                        thumb_url=baseurl + 'memes/' + memename,
                         caption=memecap
                         ))
                 elif memetype == 'video':
                     memeslist.append(InlineQueryResultVideo(
                         id=str(n),
                         title=memetitle,
-                        video_url='https://rakutiki.tv/memes/' + memename,
+                        video_url=baseurl + 'memes/' + memename,
                         mime_type='video/mp4',
-                        thumb_url='https://rakutiki.tv/memes/t_' + memename + '.jpg',
+                        thumb_url=baseurl + 'memes/t_' + memename + '.jpg',
                         caption=memecap
                         ))
                 elif memetype == 'audio':
                     memeslist.append(InlineQueryResultVoice(
                         id=str(n),
-                        voice_url='https://rakutiki.tv/memes/' + memename,
+                        voice_url=baseurl + 'memes/' + memename,
                         title=memetitle,
                         caption=memecap
                         ))
