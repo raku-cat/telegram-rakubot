@@ -295,7 +295,11 @@ def on_inline_query(msg):
                             parse_mode='html')
             ))
                 #print(memeslist)
-        return { 'results' : memeslist, 'cache_time' : 30 }
+        if len(memeslist) > 50:
+            memeslistfinal = memeslist[:50]
+        else:
+            memeslistfinal = memeslist
+        return { 'results' : memeslistfinal, 'cache_time' : 30 }
     if len(qstring) > 0:
         answerer.answer(msg, compute)
     else:
