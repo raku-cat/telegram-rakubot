@@ -147,13 +147,11 @@ async def on_command(msg):
                 mem = command.split(' ', 1)[1]
             except IndexError:
                 return
-            async with aiofiles.open(memeindex) as f:
-                memefeed = json.loads(await f.read())
             try:
-                memekey = memefeed['files'][mem]
+                memekey = getter.files(mem)[mem]
             except KeyError:
                 try:
-                    memekey = memefeed['quotes'][mem]
+                    memekey = getter.quotes(mem)[mem]
                 except KeyError:
                         await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
                         return
