@@ -11,6 +11,7 @@ from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.aio.loop import MessageLoop
 from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif, InlineQueryResultAudio
 import filefixer
+import getter
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -237,9 +238,15 @@ def on_inline_query(msg):
     #print(texd)
     next_offset = int(offset) if offset != '' else 0
     def compute():
+        memelobj = []
         offset = next_offset
-        mlist = meme_getter(qstring)
         #print(mlist)
+        mlist = memefeed['files']
+        qlist = memefeed['quotes']
+        for i in list(mlist.keys()):
+            if regex.search(qstring, i):
+                memelobj.append(getter.files(i))
+                print(memelobj)
         rnint = random.sample(range(5000), 50)
         for i, n in zip(mlist, rnint):
             for key, value in i.items():
@@ -315,18 +322,6 @@ def quote_getter(qname):
                     }
                 }
             memelobj.append(memedict)
-    return memelobj
-
-def meme_getter(mname):
-    memelobj = []
-    with open(memeindex) as f:
-        memefeed = json.loads(f.read())
-    mlist = memefeed['files']
-    for i in list(mlist.keys()):
-        if regex.search(mname, i):
-            keys = [i]
-            mdict = {x:mlist[x] for x in keys}
-            memelobj.append(mdict)
     return memelobj
 
 async def storem(mname):

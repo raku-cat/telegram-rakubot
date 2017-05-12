@@ -1,4 +1,4 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 from ffmpy import FFmpeg
 import magic
 import sys
