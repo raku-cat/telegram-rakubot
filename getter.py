@@ -10,7 +10,11 @@ def files(mname):
     with open(memeindex) as f:
         memefeed = json.loads(f.read())
     mlist = memefeed['files']
-    print(mname)
-    keys = mname
-    mdict = {x:mlist[x] for x in keys}
+    memedict = { mname : mlist[mname] }
     return memedict
+def quotes(qname):
+    with open(memeindex) as f:
+        memefeed = json.loads(f.read())
+    qlist = memefeed['quotes']
+    quotedict = { qname : qlist[qname] }
+    return quotedict

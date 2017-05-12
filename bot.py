@@ -228,28 +228,27 @@ async def on_command(msg):
         return
 
 def on_inline_query(msg):
-    query_id, from_id, query_string, offset = telepot.glance(msg, flavor='inline_query', long=True)
+    query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
     #print(msg)
     memeslist = []
     with open(memeindex) as f:
         memefeed = json.loads(f.read())
     qstring = query_string.lower()
-    #texd = await quote_getter(qstring)
-    #print(texd)
-    next_offset = int(offset) if offset != '' else 0
     def compute():
         memelobj = []
-        offset = next_offset
-        #print(mlist)
+        quotelobj = []
         mlist = memefeed['files']
         qlist = memefeed['quotes']
         for i in list(mlist.keys()):
             if regex.search(qstring, i):
                 memelobj.append(getter.files(i))
-                print(memelobj)
+                #print(memelobj)
+        for i in list(qlist.keys()):
+            if regex.search(qstring, i):
+                quotelobj.append(getter.quotes(i))
         rnint = random.sample(range(5000), 50)
-        for i, n in zip(mlist, rnint):
-            for key, value in i.items():
+        for d, n in zip(memelobj, rnint):
+            for key, value in d.items():
                 memetitle = key
                 memetype = value['mtype']
                 memename = value['filename']
@@ -283,16 +282,9 @@ def on_inline_query(msg):
                         ))
                 else:
                     return
-        qlist = quote_getter(qstring)[offset:-1]
         rnint = random.sample(range(5000), 50)
-        if len(qlist[offset:]) > 50:
-            qlist = qlist[offset:offset + 50]
-            offset=str(int(offset) + 51 )
-        else:
-            qlist = qlist[:50]
-            offset = ''
-        for i, n in zip(qlist, rnint):
-                for key, value in i.items():
+        for q, n in zip(quotelobj, rnint):
+                for key, value in q.items():
                     memetitle = key
                     memetext = value['text']
                     memeauthor = value['author']
@@ -303,26 +295,11 @@ def on_inline_query(msg):
                             parse_mode='html')
             ))
                 #print(memeslist)
-        return { 'results' : memeslist, 'cache_time' : 30, 'next_offset' : offset }
+        return { 'results' : memeslist, 'cache_time' : 30 }
     if len(qstring) > 0:
         answerer.answer(msg, compute)
     else:
         return
-def quote_getter(qname):
-    with open(memeindex) as f:
-        memefeed = json.loads(f.read())
-    qlist = memefeed['quotes']
-    memelobj = []
-    for i in list(qlist.keys()):
-        if regex.search(qname, i):
-            memedict = {
-                    i: {
-                        'text': qlist[i]['text'],
-                        'author' : qlist[i]['author'],
-                    }
-                }
-            memelobj.append(memedict)
-    return memelobj
 
 async def storem(mname):
     return
