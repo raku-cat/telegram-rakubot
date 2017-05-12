@@ -1,3 +1,4 @@
 keys.json
 *memes/*
-*botenv/*
+*env/*
+__pycache__/

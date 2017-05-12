@@ -7,11 +7,11 @@ import datetime
 import os
 import random
 import regex
-import magic
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.aio.loop import MessageLoop
 from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif, InlineQueryResultAudio
-from ffmpy import FFmpeg
+import filefixer
+
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
@@ -23,33 +23,10 @@ memeindex = memedir + 'memeindex.json'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
-def mp4thumb():
-    with open(memeindex) as f:
-        memefeeds = json.loads(f.read())
-        for keys, values in memefeeds['files'].items():
-            if values['mtype'] == 'video':
-                if not os.path.exists(memedir + 't_' + values['filename'] + '.jpg'):
-                    ff = FFmpeg(
-                        inputs={memedir + values['filename']: '-loglevel panic -y -ss 00:00:00'},
-                        outputs={memedir + 't_' + values['filename'] + '.jpg': '-vframes 1'}
-                        )
-                    #print(ff.cmd)
-                    ff.run()
 
-def oggconv():
-    with open(memeindex) as f:
-        memefeeds = json.loads(f.read())
-        for keys, values in memefeeds['files'].items():
-            if values['mtype'] == 'audio':
-                if magic.Magic(mime=True).from_file(memedir + values['filename']) != 'audio/ogg':
-                   ff = FFmpeg(
-                        inputs={memedir + values['filename']: '-loglevel panic -y'},
-                        outputs={memedir + values['filename']: '-acodec libopus'}
-                        )
-                   #print(ff.cmd)
-                   ff.run()
-oggconv()
-mp4thumb()
+filefixer.oggconv()
+filefixer.mp4thumb()
+
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(telepot.flavor(msg))
@@ -158,9 +135,9 @@ async def on_command(msg):
                         json.dump(memefeed, f, indent=2)
                     await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
                     if mtype == 'video':
-                        mp4thumb()
+                        filefixer.mp4thumb()
                     elif mtype == 'audio':
-                        oggconv()
+                        filefixer.oggconv()
                     return
             except UnboundLocalError:
                 return
