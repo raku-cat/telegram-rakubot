@@ -56,7 +56,7 @@ async def on_command(msg):
                 return
             if reply:
                 typeaud = reply.get('audio', {}).get('file_id')
-                typepic = reply.get('photo', {})
+                typepic = reply.get('photo')
                 typedoc = reply.get('document', {}).get('file_id')
                 typechat = reply.get('chat')
                 typevoice = reply.get('voice', {}).get('file_id')
