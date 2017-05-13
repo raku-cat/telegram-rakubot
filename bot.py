@@ -49,15 +49,18 @@ async def on_command(msg):
         except KeyError:
             reply_id = 'None'
         command = msg['text'].lower()
-        await bot.sendChatAction(chat_id, 'typing')
         if command.startswith('/store'):
+            await bot.sendChatAction(chat_id, 'typing')
             await store_meme(command)
         elif command.startswith('/meme'):
+            await bot.sendChatAction(chat_id, 'typing')
             await meme_sender(command)
         elif command.startswith('/list'):
+            await bot.sendChatAction(chat_id, 'typing')
             await lister(chat_type)
         elif command.startswith('/delet'):
             if from_id == 105301944:
+                await bot.sendChatAction(chat_id, 'typing')
                 await deleter(command)
             else:
                 return
