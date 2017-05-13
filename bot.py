@@ -29,6 +29,8 @@ filefixer.oggconv()
 filefixer.mp4thumb()
 
 async def on_command(msg):
+    global chat_id
+    global reply_id
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(telepot.flavor(msg))
     #print(chat_type, content_type, chat_id)
@@ -47,180 +49,193 @@ async def on_command(msg):
         except KeyError:
             reply_id = 'None'
         command = msg['text'].lower()
+        await bot.sendChatAction(chat_id, 'typing')
         if command.startswith('/store'):
-            await bot.sendChatAction(chat_id, 'typing')
-            try:
-                mem = command.split(' ', 1)[1]
-            except IndexError:
-                await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
-                return
-            if reply:
-                typeaud = reply.get('audio', {}).get('file_id')
-                typepic = reply.get('photo')
-                typedoc = reply.get('document', {}).get('file_id')
-                typechat = reply.get('chat')
-                typevoice = reply.get('voice', {}).get('file_id')
-                if typeaud is not None:
-                    mtype = 'audio'
-                    file_id = typeaud
-                elif typepic is not None:
-                    mtype = 'photo'
-                    file_id = typepic[-1]['file_id']
-                    try:
-                        caption = reply['caption']
-                    except KeyError:
-                        caption = ''
-                elif typedoc is not None:
-                    file_id = typedoc
-                    dmtye = reply['document']['mime_type'].split('/')[0]
-                    if dmtye == 'audio':
-                        mtype = 'audio'
-                    elif dmtye == 'video':
-                        mtype = 'video'
-                        try:
-                            caption = reply['caption']
-                        except KeyError:
-                            caption = ''
-                elif typechat is not None:
-                    authname = '@' + reply['from']['username']
-                    quotetext = reply['text']
-                    mtype = 'quote'
-                elif typevoice is not None:
-                    mtype = 'audio'
-                    file_id = typevoice
-                else:
-                    await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
-                    return
-            async with aiofiles.open(memeindex) as f:
-                memefeed = json.loads(await f.read())
-            try:
-                memefeed['files'][mem]
-                await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                return
-            except KeyError:
-                try:
-                    memefeed['quotes'][mem]
-                    await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
-                    return
-                except KeyError:
-                    pass
-            if mtype in ['video', 'audio', 'photo']:
-                file_path = await bot.getFile(file_id)
-                file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
-                try:
-                    ext = '.' + file_url.split('.')[3]
-                except IndexError:
-                    ext = ''
-                if mtype == 'audio':
-                    ext = '.ogg'
-                namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
-                memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption } }
-                memefeed['files'].update(memedex)
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(file_url) as r:
-                        if r.status == 200:
-                            async with aiofiles.open(memedir + namevar, 'wb') as f:
-                                while True:
-                                    chunk = await r.content.read(128)
-                                    if not chunk:
-                                        break
-                                    await f.write(chunk)
-                        else:
-                            await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
-                            return
-            elif mtype == 'quote':
-                memedex = { mem : { 'text' : quotetext, 'author' : authname } }
-                memefeed['quotes'].update(memedex)
-            with open(memeindex, 'w') as f:
-                json.dump(memefeed, f, indent=2)
-                await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
-                if mtype == 'video':
-                    filefixer.mp4thumb()
-                elif mtype == 'audio':
-                    filefixer.oggconv()
-                    return
+            await store_meme(command)
         elif command.startswith('/meme'):
-            try:
-                mem = command.split(' ', 1)[1]
-            except IndexError:
-                return
-            try:
-                memekey = getter.files(mem)[mem]
-            except KeyError:
-                try:
-                    memekey = getter.quotes(mem)[mem]
-                except KeyError:
-                        await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
-                        return
-            await bot.sendChatAction(chat_id, 'typing')
-            try:
-                memtype = memekey['mtype']
-            except KeyError:
-                pass
-            try:
-                if memtype in  ['video', 'audio', 'photo']:
-                    try:
-                        async with aiofiles.open(memedir + memekey['filename'], 'rb') as m:
-                            meme = await m.read()
-                    except:
-                        bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
-                    try:
-                        capvar = memekey['cap']
-                    except KeyError:
-                        capvar = ''
-                if memtype == 'audio':
-                    await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
-                elif memtype == 'video':
-                    await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
-                elif memtype == 'photo':
-                    await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
-                else:
-                    await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
-            except UnboundLocalError:
-               await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>— ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+            await meme_sender(command)
         elif command.startswith('/list'):
-            if chat_type != 'private':
-                await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
-            else:
-                async with aiofiles.open(memeindex) as f:
-                    memefeed = json.loads(await f.read())
-                temp = list()
-                for k in memefeed.keys():
-                    temp.append(list(memefeed[k]))
-                temp = temp[0] + temp[1]
-                memlist = list()
-                for i in temp:
-                    formatt = '- ' + i + '\n'
-                    memlist.append(formatt)
-                memelist = ''.join(memlist)
-                await bot.sendMessage(chat_id, memelist, parse_mode='html')
+            await lister(chat_type)
         elif command.startswith('/delet'):
             if from_id == 105301944:
-                try:
-                    mem = command.split(' ', 1)[1]
-                except IndexError:
-                    return
-                async with aiofiles.open(memeindex) as f:
-                    memefeed = json.loads(await f.read())
-                try:
-                    memekey = memefeed['files'][mem]
-                except KeyError:
-                    try:
-                        memekey = memefeed['quotes'][mem]
-                    except KeyError:
-                        await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
-                        return
-                try:
-                    memef = memedir + memekey['filename']
-                    os.remove(memef)
-                    del memefeed['files'][mem]
-                except KeyError:
-                    del memefeed['quotes'][mem]
-                with open(memeindex, 'w') as f:
-                    json.dump(memefeed, f, indent=2)
-                await bot.sendMessage(chat_id, 'Meme baleet >:U', reply_to_message_id=msg_id)
+                await deleter(command)
+            else:
+                return
     else:
         return
+
+async def store_meme(command):
+    try:
+        mem = command.split(' ', 1)[1]
+    except IndexError:
+        await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
+        return
+    if reply:
+        typeaud = reply.get('audio', {}).get('file_id')
+        typepic = reply.get('photo')
+        typedoc = reply.get('document', {}).get('file_id')
+        typechat = reply.get('chat')
+        typevoice = reply.get('voice', {}).get('file_id')
+    if typeaud is not None:
+        mtype = 'audio'
+        file_id = typeaud
+    elif typepic is not None:
+        mtype = 'photo'
+        file_id = typepic[-1]['file_id']
+        try:
+            caption = reply['caption']
+        except KeyError:
+            caption = ''
+    elif typedoc is not None:
+        file_id = typedoc
+        dmtye = reply['document']['mime_type'].split('/')[0]
+        if dmtye == 'audio':
+            mtype = 'audio'
+        elif dmtye == 'video':
+            mtype = 'video'
+            try:
+                caption = reply['caption']
+            except KeyError:
+                caption = ''
+    elif typechat is not None:
+        authname = '@' + reply['from']['username']
+        quotetext = reply['text']
+        mtype = 'quote'
+    elif typevoice is not None:
+        mtype = 'audio'
+        file_id = typevoice
+    else:
+        await bot.sendMessage(chat_id, 'Idk what that is, i can\'t grab it')
+        return
+    async with aiofiles.open(memeindex) as f:
+        memefeed = json.loads(await f.read())
+    try:
+        memefeed['files'][mem]
+        await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+        return
+    except KeyError:
+        try:
+            memefeed['quotes'][mem]
+            await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+            return
+        except KeyError:
+            pass
+    if mtype in ['video', 'audio', 'photo']:
+        file_path = await bot.getFile(file_id)
+        file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
+        try:
+            ext = '.' + file_url.split('.')[3]
+        except IndexError:
+            ext = ''
+        if mtype == 'audio':
+            ext = '.ogg'
+        namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
+        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption } }
+        memefeed['files'].update(memedex)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(file_url) as r:
+                if r.status == 200:
+                    async with aiofiles.open(memedir + namevar, 'wb') as f:
+                        while True:
+                            chunk = await r.content.read(128)
+                            if not chunk:
+                                break
+                            await f.write(chunk)
+                else:
+                    await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
+                    return
+    elif mtype == 'quote':
+        memedex = { mem : { 'text' : quotetext, 'author' : authname } }
+        memefeed['quotes'].update(memedex)
+    with open(memeindex, 'w') as f:
+        json.dump(memefeed, f, indent=2)
+        await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+        if mtype == 'video':
+            filefixer.mp4thumb()
+        elif mtype == 'audio':
+            filefixer.oggconv()
+            return
+
+async def meme_sender(command):
+    try:
+        mem = command.split(' ', 1)[1]
+    except IndexError:
+        return
+    try:
+        memekey = getter.files(mem)[mem]
+    except KeyError:
+        try:
+            memekey = getter.quotes(mem)[mem]
+        except KeyError:
+                await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+                return
+    try:
+        memtype = memekey['mtype']
+    except KeyError:
+        pass
+    try:
+        if memtype in  ['video', 'audio', 'photo']:
+            try:
+                async with aiofiles.open(memedir + memekey['filename'], 'rb') as m:
+                    meme = await m.read()
+            except:
+                bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+            try:
+                capvar = memekey['cap']
+            except KeyError:
+                capvar = ''
+        if memtype == 'audio':
+            await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
+        elif memtype == 'video':
+            await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+        elif memtype == 'photo':
+            await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+        else:
+            await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+    except UnboundLocalError:
+       await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>— ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+
+async def lister(chat_type):
+    if chat_type != 'private':
+        await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
+    else:
+        async with aiofiles.open(memeindex) as f:
+            memefeed = json.loads(await f.read())
+        temp = list()
+        for k in memefeed.keys():
+            temp.append(list(memefeed[k]))
+        temp = temp[0] + temp[1]
+        memlist = list()
+        for i in temp:
+            formatt = '- ' + i + '\n'
+            memlist.append(formatt)
+        memelist = ''.join(memlist)
+        await bot.sendMessage(chat_id, memelist, parse_mode='html')
+
+async def deleter(command):
+    try:
+        mem = command.split(' ', 1)[1]
+    except IndexError:
+        return
+    async with aiofiles.open(memeindex) as f:
+        memefeed = json.loads(await f.read())
+    try:
+        memekey = memefeed['files'][mem]
+    except KeyError:
+        try:
+            memekey = memefeed['quotes'][mem]
+        except KeyError:
+            await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+            return
+    try:
+        memef = memedir + memekey['filename']
+        os.remove(memef)
+        del memefeed['files'][mem]
+    except KeyError:
+        del memefeed['quotes'][mem]
+    with open(memeindex, 'w') as f:
+        json.dump(memefeed, f, indent=2)
+    await bot.sendMessage(chat_id, 'Meme baleet >:U', reply_to_message_id=msg_id)
 
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
@@ -300,16 +315,9 @@ def on_inline_query(msg):
     else:
         return
 
-async def storem(mname):
-    return
-
-async def chosen_return(msg):
-    return
-    
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()
 loop.create_task(MessageLoop(bot,{'chat' : on_command,
-                                   'inline_query' : on_inline_query,
-                                   'chosen_inline_result' : chosen_return}).run_forever())
+                                   'inline_query' : on_inline_query}).run_forever())
 print('Started...')
 loop.run_forever()
