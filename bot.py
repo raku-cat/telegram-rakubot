@@ -29,8 +29,6 @@ filefixer.oggconv()
 filefixer.mp4thumb()
 
 async def on_command(msg):
-    global chat_id
-    global reply_id
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(telepot.flavor(msg))
     #print(chat_type, content_type, chat_id)
@@ -51,23 +49,30 @@ async def on_command(msg):
         command = msg['text'].lower()
         if command.startswith('/store'):
             await bot.sendChatAction(chat_id, 'typing')
-            await store_meme(command)
+            await store_meme(msg)
         elif command.startswith('/meme'):
             await bot.sendChatAction(chat_id, 'typing')
-            await meme_sender(command)
+            await meme_sender(msg)
         elif command.startswith('/list'):
             await bot.sendChatAction(chat_id, 'typing')
-            await lister(chat_type)
+            await lister(msg)
         elif command.startswith('/delet'):
             if from_id == 105301944:
                 await bot.sendChatAction(chat_id, 'typing')
-                await deleter(command)
+                await deleter(msg)
             else:
                 return
     else:
         return
 
-async def store_meme(command):
+async def store_meme(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    try:
+        reply = msg['reply_to_message']
+        reply_id = reply['message_id']
+    except KeyError:
+        reply_id = 'None'
+    command = msg['text'].lower()
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
@@ -159,7 +164,15 @@ async def store_meme(command):
             filefixer.oggconv()
             return
 
-async def meme_sender(command):
+async def meme_sender(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    command = msg['text'].lower()
+    try:
+        reply = msg['reply_to_message']
+        reply_id = reply['message_id']
+    except KeyError:
+        reply_id = 'None'
+
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
@@ -196,9 +209,10 @@ async def meme_sender(command):
         else:
             await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
     except UnboundLocalError:
-       await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>— ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+       await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>??? ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
 
-async def lister(chat_type):
+async def lister(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     if chat_type != 'private':
         await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
     else:
@@ -216,6 +230,7 @@ async def lister(chat_type):
         await bot.sendMessage(chat_id, memelist, parse_mode='html')
 
 async def deleter(command):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
@@ -313,10 +328,7 @@ def on_inline_query(msg):
         else:
             memeslistfinal = memeslist
         return { 'results' : memeslistfinal, 'cache_time' : 30 }
-    if len(qstring) > 0:
-        answerer.answer(msg, compute)
-    else:
-        return
+    answerer.answer(msg, compute)
 
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()
