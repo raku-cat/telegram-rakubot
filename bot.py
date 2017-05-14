@@ -78,7 +78,7 @@ async def store_meme(msg):
     except IndexError:
         await bot.sendMessage(chat_id, 'Expected second argument as name `/store <name>`', parse_mode='Markdown')
         return
-    if reply:
+    if reply_id is not None:
         typeaud = reply.get('audio', {}).get('file_id')
         typepic = reply.get('photo')
         typedoc = reply.get('document', {}).get('file_id')
@@ -106,7 +106,10 @@ async def store_meme(msg):
             except KeyError:
                 caption = ''
     elif typechat is not None:
-        authname = '@' + reply['from']['username']
+        try:
+            authname = '@' + reply['forward_from']['username']
+        except KeyError:
+            authname = '@' + reply['from']['username']
         quotetext = reply['text']
         mtype = 'quote'
     elif typevoice is not None:
@@ -209,7 +212,7 @@ async def meme_sender(msg):
         else:
             await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
     except UnboundLocalError:
-       await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>??? ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+       await bot.sendMessage(chat_id, memekey['text'] + '\n  <i>— ' + memekey['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
 
 async def lister(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
@@ -229,8 +232,9 @@ async def lister(msg):
         memelist = ''.join(memlist)
         await bot.sendMessage(chat_id, memelist, parse_mode='html')
 
-async def deleter(command):
+async def deleter(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    command = msg['text'].lower()
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
