@@ -53,7 +53,7 @@ async def on_command(msg):
         elif command.startswith('/meme'):
             await bot.sendChatAction(chat_id, 'typing')
             await meme_sender(msg)
-        elif command.startswith('/list'):
+        elif command.startswith('/list') or command.startswith('/start'):
             await bot.sendChatAction(chat_id, 'typing')
             await lister(msg)
         elif command.startswith('/delet'):
@@ -216,9 +216,17 @@ async def meme_sender(msg):
 
 async def lister(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    #print(msg)
     if chat_type != 'private':
-        await bot.sendMessage(chat_id, 'Ask in PM pls', reply_to_message_id=msg_id)
+        await bot.sendMessage(chat_id, '<a href="http://telegram.me/raku_bot?start=list">Ask in PM pls</a>', reply_to_message_id=msg_id, parse_mode='html', disable_web_page_preview=True)
     else:
+        if msg['text'].lower().startswith('/start'):
+            if msg['text'].split(' ')[1] == 'list':
+                pass
+            else:
+                return
+        else:
+            pass
         async with aiofiles.open(memeindex) as f:
             memefeed = json.loads(await f.read())
         temp = list()
