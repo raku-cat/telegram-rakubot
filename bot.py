@@ -6,7 +6,6 @@ import json
 import datetime
 import os
 import random
-import markovify
 import regex
 from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.aio.loop import MessageLoop
@@ -63,18 +62,8 @@ async def on_command(msg):
                 await deleter(msg)
             else:
                 return
-        elif random.uniform(0.0, 1.0) < 0.01 or 'tf' in command or 'blort' in command:
-            luzylist = []
-            async with aiofiles.open(memeindex) as f:
-                luzyindex = json.loads(await f.read())
-            for key, value in luzyindex['quotes'].items():
-                if value['author'] == '@luzy_lu' or 'luzy' in key:
-                    luzylist.append(value['text'])
-            luzystrings = '\n'.join(luzylist)
-            luzy_model = markovify.NewlineText(luzystrings, state_size=1)
-            luzy_message = luzy_model.make_short_sentence(140)
-            if luzy_message is not None:
-                await bot.sendMessage(chat_id, luzy_message)
+    else:
+        return
 
 async def store_meme(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
