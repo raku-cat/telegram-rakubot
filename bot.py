@@ -132,6 +132,10 @@ async def store_meme(msg):
         except KeyError:
             pass
     if mtype in ['video', 'audio', 'photo']:
+        try:
+            caption
+        except UnboundLocalError:
+            caption = ''
         file_path = await bot.getFile(file_id)
         file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
         try:
@@ -314,9 +318,9 @@ def on_inline_query(msg):
                         caption=memecap
                         ))
                 elif memetype == 'audio':
-                    memeslist.append(InlineQueryResultAudio(
+                    memeslist.append(InlineQueryResultVoice(
                         id=str(n),
-                        audio_url=baseurl + 'memes/' + memename,
+                        voice_url=baseurl + 'memes/' + memename,
                         title=memetitle,
                         caption=memecap
                         ))

@@ -10,7 +10,7 @@ memeindex = memedir + 'memeindex.json'
 
 def oggconv():
     with open(memeindex) as f:
-        memefeeds = json.loads(f.read())
+        memefeeds = json.load(f)
         for keys, values in memefeeds['files'].items():
             if values['mtype'] == 'audio':
                 if magic.Magic(mime=True).from_file(memedir + values['filename']) != 'audio/ogg':
