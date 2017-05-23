@@ -12,6 +12,7 @@ from telepot.aio.loop import MessageLoop
 from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent, InlineQueryResultVideo, InlineQueryResultVoice, InlineQueryResultGif, InlineQueryResultMpeg4Gif, InlineQueryResultAudio
 import filefixer
 import getter
+from threading import Lock
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
@@ -24,6 +25,7 @@ memeindex = memedir + 'memeindex.json'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
+lock = Lock()
 
 filefixer.oggconv()
 filefixer.mp4thumb()
@@ -73,6 +75,7 @@ async def store_meme(msg):
     except KeyError:
         reply_id = 'None'
     command = msg['text'].lower()
+    print(reply)
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
@@ -162,14 +165,14 @@ async def store_meme(msg):
     elif mtype == 'quote':
         memedex = { mem : { 'text' : quotetext, 'author' : authname } }
         memefeed['quotes'].update(memedex)
-    with open(memeindex, 'w') as f:
-        json.dump(memefeed, f, indent=2)
-        await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
-        if mtype == 'video':
-            filefixer.mp4thumb()
-        elif mtype == 'audio':
-            filefixer.oggconv()
-            return
+    with lock:
+        with open(memeindex, 'w') as f:
+            json.dump(memefeed, f, indent=2)
+    await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + mem + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+    if mtype == 'video':
+        filefixer.mp4thumb()
+    elif mtype == 'audio':
+        filefixer.oggconv()
 
 async def meme_sender(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
