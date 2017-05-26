@@ -75,7 +75,6 @@ async def store_meme(msg):
     except KeyError:
         reply_id = 'None'
     command = msg['text'].lower()
-    print(reply)
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
