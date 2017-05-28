@@ -64,6 +64,9 @@ async def on_command(msg):
                 await deleter(msg)
             else:
                 return
+        elif command.startswith('/sauce'):
+            await bot.sendChatAction(chat_id, 'typing')
+            await meme_sauce(msg)
     else:
         return
 
@@ -133,6 +136,10 @@ async def store_meme(msg):
             return
         except KeyError:
             pass
+    try:
+        sauce = msg['from']['username']
+    except KeyError:
+        sauce = ''
     if mtype in ['video', 'audio', 'photo']:
         try:
             caption
@@ -147,7 +154,7 @@ async def store_meme(msg):
         if mtype == 'audio':
             ext = '.ogg'
         namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
-        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption } }
+        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption, 'sauce' : sauce } }
         memefeed['files'].update(memedex)
         async with aiohttp.ClientSession() as session:
             async with session.get(file_url) as r:
@@ -162,7 +169,7 @@ async def store_meme(msg):
                     await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
                     return
     elif mtype == 'quote':
-        memedex = { mem : { 'text' : quotetext, 'author' : authname } }
+        memedex = { mem : { 'text' : quotetext, 'author' : authname, 'sauce' : sauce } }
         memefeed['quotes'].update(memedex)
     with lock:
         with open(memeindex, 'w') as f:
@@ -272,6 +279,28 @@ async def deleter(msg):
     with open(memeindex, 'w') as f:
         json.dump(memefeed, f, indent=2)
     await bot.sendMessage(chat_id, 'Meme baleet >:U', reply_to_message_id=msg_id)
+
+async def meme_sauce(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    command = msg['text'].lower()
+    try:
+        mem = command.split(' ', 1)[1]
+    except IndexError:
+        return
+    async with aiofiles.open(memeindex) as f:
+        memefeed = json.loads(await f.read())
+    try:
+        memekey = memefeed['files'][mem]
+    except KeyError:
+        try:
+            memekey = memefeed['quotes'][mem]
+        except KeyError:
+            await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
+            return
+    try:
+        await bot.sendMessage(chat_id, 'this was @' + memekey['sauce'] + ' tbh.......', reply_to_message_id=msg_id)
+    except KeyError:
+        return
 
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
