@@ -67,6 +67,9 @@ async def on_command(msg):
         elif command.startswith('/sauce'):
             await bot.sendChatAction(chat_id, 'typing')
             await meme_sauce(msg)
+        elif command.startswith('/pray'):
+            await bot.sendChatAction(chat_id, 'typing')
+            await prayer(msg)
     else:
         return
 
@@ -231,7 +234,10 @@ async def lister(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(msg)
     if chat_type != 'private':
-        await bot.sendMessage(chat_id, '<a href="http://telegram.me/raku_bot?start=list">Ask in PM pls</a>', reply_to_message_id=msg_id, parse_mode='html', disable_web_page_preview=True)
+        if msg['text'].lower() == '/list' or '/list@rakubot':
+            await bot.sendMessage(chat_id, '<a href="http://telegram.me/raku_bot?start=list">Ask in PM pls</a>', reply_to_message_id=msg_id, parse_mode='html', disable_web_page_preview=True)
+        else:
+            return
     else:
         if msg['text'].lower().startswith('/start'):
             if msg['text'].split(' ')[1] == 'list':
@@ -301,6 +307,16 @@ async def meme_sauce(msg):
         await bot.sendMessage(chat_id, 'this was @' + memekey['sauce'] + ' tbh.......', reply_to_message_id=msg_id)
     except KeyError:
         return
+
+async def prayer(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    command = msg['text'].lower()
+    try:
+        mem = command.split(' ', 1)[1]
+    except IndexError:
+        return
+    prayer = "".join(mem.split())
+    await bot.sendMessage(chat_id, 'In light of the recent events that happened there, we\'d like to #prayfor' + prayer)
 
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')

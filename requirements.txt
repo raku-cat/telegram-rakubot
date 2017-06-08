@@ -1,18 +1,22 @@
-aiofiles==0.3.1
-aiohttp==2.0.7
-appdirs==1.4.3
-async-timeout==1.2.1
-chardet==3.0.3
-ffmpy==0.2.2
-markovify==0.6.0
-multidict==2.1.5
-packaging==16.8
-pkg-resources==0.0.0
-pyparsing==2.2.0
-python-magic==0.4.13
-regex==2017.4.29
-six==1.10.0
-telepot==11.0
-Unidecode==0.4.20
-urllib3==1.21.1
-yarl==0.10.2
+aiofiles (0.3.1)
+aiohttp (2.1.0)
+appdirs (1.4.3)
+async-timeout (1.2.1)
+chardet (3.0.3)
+demjson (2.2.4)
+ffmpy (0.2.2)
+markovify (0.6.0)
+multidict (2.1.6)
+packaging (16.8)
+pip (9.0.1)
+pkg-resources (0.0.0)
+pyparsing (2.2.0)
+python-magic (0.4.13)
+regex (2017.4.29)
+setuptools (35.0.2)
+six (1.10.0)
+telepot (12.0)
+Unidecode (0.4.20)
+urllib3 (1.21.1)
+wheel (0.30.0a0)
+yarl (0.10.2)
