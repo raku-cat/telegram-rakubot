@@ -70,6 +70,9 @@ async def on_command(msg):
         elif command.startswith('/pray'):
             await bot.sendChatAction(chat_id, 'typing')
             await prayer(msg)
+        elif command.startswith('/lucc'):
+            await bot.sendChatAction(chat_id, 'typing')
+            await lucc(msg)
     else:
         return
 
@@ -81,6 +84,7 @@ async def store_meme(msg):
     except KeyError:
         reply_id = 'None'
     command = msg['text'].lower()
+    #print(reply)
     try:
         mem = command.split(' ', 1)[1]
     except IndexError:
@@ -90,7 +94,8 @@ async def store_meme(msg):
         typeaud = reply.get('audio', {}).get('file_id')
         typepic = reply.get('photo')
         typedoc = reply.get('document', {}).get('file_id')
-        typechat = reply.get('chat')
+        typevid = reply.get('video', {}).get('file_id')
+        typechat = reply.get('text')
         typevoice = reply.get('voice', {}).get('file_id')
     if typeaud is not None:
         mtype = 'audio'
@@ -113,6 +118,9 @@ async def store_meme(msg):
                 caption = reply['caption']
             except KeyError:
                 caption = ''
+    elif typevid is not None:
+        mtype='video'
+        file_id = typevid
     elif typechat is not None:
         try:
             authname = '@' + reply['forward_from']['username']
@@ -308,6 +316,43 @@ async def meme_sauce(msg):
     except KeyError:
         return
 
+async def lucc(msg):
+    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    try:
+        reply = msg['reply_to_message']
+        reply_id = reply['message_id']
+    except KeyError:
+        reply_id = 'None'
+    with open(memeindex) as f:
+        memefeeds = json.load(f)
+    memf = memefeeds[random.choice(list(memefeeds.keys()))]
+    luckymeme =  memf[random.choice(list(memf.keys()))]
+    try:
+        memtype = luckymeme['mtype']
+    except KeyError:
+        pass
+    try:
+        if memtype in  ['video', 'audio', 'photo']:
+            try:
+                async with aiofiles.open(memedir + luckymeme['filename'], 'rb') as m:
+                    meme = await m.read()
+            except:
+                bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+            try:
+                capvar = luckymeme['cap']
+            except KeyError:
+                capvar = ''
+            if memtype == 'audio':
+                await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
+            elif memtype == 'video':
+                await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            elif memtype == 'photo':
+                await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            else:
+                await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+    except UnboundLocalError:
+        await bot.sendMessage(chat_id, luckymeme['text'] + '\n  <i>— ' + luckymeme['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+
 async def prayer(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     command = msg['text'].lower()
@@ -316,7 +361,7 @@ async def prayer(msg):
     except IndexError:
         return
     prayer = "".join(mem.split())
-    await bot.sendMessage(chat_id, 'In light of the recent events that happened there, we\'d like to #prayfor' + prayer)
+    await bot.sendMessage(chat_id, 'In light of recent events, we\'d like to #prayfor' + prayer)
 
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
