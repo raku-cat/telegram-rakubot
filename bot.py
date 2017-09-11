@@ -27,8 +27,8 @@ if not os.path.exists(memeindex):
         json.dump({'files' : {}, 'quotes' : {}}, f)
 lock = Lock()
 
-filefixer.oggconv()
-filefixer.mp4thumb()
+#filefixer.oggconv()
+#filefixer.mp4thumb()
 
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
@@ -73,6 +73,8 @@ async def on_command(msg):
         elif command.startswith('/lucc'):
             await bot.sendChatAction(chat_id, 'typing')
             await lucc(msg)
+        elif content_type == 'voice':
+            print('beep')
     else:
         return
 
