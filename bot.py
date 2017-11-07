@@ -55,7 +55,7 @@ async def on_command(msg):
         elif command.startswith('/meme'):
             await bot.sendChatAction(chat_id, 'typing')
             await meme_sender(msg)
-        elif command.startswith('/list') or command.startswith('/start'):
+        elif command.startswith('/list') or command.startswith('/start@raku_bot'):
             await bot.sendChatAction(chat_id, 'typing')
             await lister(msg)
         elif command.startswith('/delet'):
