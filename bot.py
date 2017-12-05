@@ -13,15 +13,17 @@ from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto,
 import filefixer
 import getter
 from threading import Lock
+import requests
+import commands
+import utils
+import settings
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
 baseurl = key['baseurl']
 memedir = sys.path[0] + '/memes/'
-if not os.path.exists(memedir):
-    os.makedirs(memdir)
-memeindex = memedir + 'memeindex.json'
+memeindex = 'memeindex.json'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
@@ -34,25 +36,25 @@ async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
     #print(telepot.flavor(msg))
     #print(chat_type, content_type, chat_id)
-    from_id = msg['from']['id']
+    #from_id = msg['from']['id']
     #print(msg)
     try:
         botcom = msg['entities'][0]['type']
         if not botcom == 'bot_command':
             return
     except KeyError:
-        pass
+        return
     if content_type == 'text':
+        raw_message, command, command_argument, msg_reply, command_from = utils.Parser(msg)
         try:
-            reply = msg['reply_to_message']
-            reply_id = reply['message_id']
-        except KeyError:
+            reply_id = msg_reply['message_id']
+        except TypeError:
             reply_id = 'None'
-        command = msg['text'].lower()
-        if command.startswith('/store'):
+        if command == '/store':
             await bot.sendChatAction(chat_id, 'typing')
-            await store_meme(msg)
-        elif command.startswith('/meme'):
+            s = commands.Handler(msg_reply)
+            await bot.sendMessage(chat_id, s.store(command_argument, command_from))
+        if command.startswith('/meme'):
             await bot.sendChatAction(chat_id, 'typing')
             await meme_sender(msg)
         elif command.startswith('/list') or command.startswith('/start@raku_bot'):
@@ -158,29 +160,20 @@ async def store_meme(msg):
             caption
         except UnboundLocalError:
             caption = ''
-        file_path = await bot.getFile(file_id)
-        file_url = 'https://api.telegram.org/file/bot' + key['telegram'] + '/' + file_path['file_path']
-        try:
-            ext = '.' + file_url.split('.')[3]
-        except IndexError:
-            ext = ''
-        if mtype == 'audio':
-            ext = '.ogg'
-        namevar = datetime.datetime.now().strftime("%Y%m%d%H%M%f") + ext
-        memedex = { mem : { 'filename' : namevar, 'mtype' : mtype, 'cap' : caption, 'sauce' : sauce } }
+        memedex = { mem : { 'file_id' : file_id, 'mtype' : mtype, 'cap' : caption, 'sauce' : sauce } }
         memefeed['files'].update(memedex)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(file_url) as r:
-                if r.status == 200:
-                    async with aiofiles.open(memedir + namevar, 'wb') as f:
-                        while True:
-                            chunk = await r.content.read(128)
-                            if not chunk:
-                                break
-                            await f.write(chunk)
-                else:
-                    await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
-                    return
+#        async with aiohttp.ClientSession() as session:
+#            async with session.get(file_url) as r:
+#                if r.status == 200:
+#                    async with aiofiles.open(memedir + namevar, 'wb') as f:
+#                        while True:
+#                            chunk = await r.content.read(128)
+#                            if not chunk:
+#                                break
+#                            await f.write(chunk)
+#                else:
+#                    await bot.sendMessage(chat_id, 'Telegram is messing up, I can\'t do anything about it sorry', reply_to_message_id=msg_id)
+#                    return
     elif mtype == 'quote':
         memedex = { mem : { 'text' : quotetext, 'author' : authname, 'sauce' : sauce } }
         memefeed['quotes'].update(memedex)
@@ -208,33 +201,97 @@ async def meme_sender(msg):
         return
     try:
         memekey = getter.files(mem)[mem]
+        meme = memekey['file_id']
     except KeyError:
         try:
-            memekey = getter.quotes(mem)[mem]
+            legacykey = getter.legacyfile(mem)[mem]
         except KeyError:
+            try:
+                memekey = getter.quotes(mem)[mem]
+            except KeyError:
                 await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
                 return
     try:
         memtype = memekey['mtype']
+    except UnboundLocalError:
+        try:
+            memtype = legacykey['mtype']
+        except KeyError:
+            pass
     except KeyError:
         pass
     try:
         if memtype in  ['video', 'audio', 'photo']:
             try:
-                async with aiofiles.open(memedir + memekey['filename'], 'rb') as m:
-                    meme = await m.read()
+                async with aiofiles.open(memedir + legacykey['filename'], 'rb') as m:
+                    legacymeme = await m.read()
             except:
-                bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
+                pass 
             try:
                 capvar = memekey['cap']
-            except KeyError:
-                capvar = ''
+            except UnboundLocalError:
+                try:
+                    capvar = legacykey['cap']
+                except KeyError:
+                    capvar = ''
         if memtype == 'audio':
-            await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id)
+            try:
+                await bot.sendVoice(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            except UnboundLocalError:
+                oldmeme = await bot.sendVoice(chat_id, legacymeme, reply_to_message_id=reply_id)
+                newid = oldmeme.get('audio', {}).get('file_id')
+                try:
+                    oldsauce = legacykey['sauce']
+                except KeyError:
+                    oldsauce = ''
+                memedex = { mem : { 'file_id' : newid, 'mtype' : memtype, 'cap' : capvar, 'sauce' : oldsauce } }
+                async with aiofiles.open(memeindex) as f:
+                    memefeed = json.loads(await f.read())
+                memefeed['files'].update(memedex)
+                with lock:
+                    with open(memeindex, 'w') as f:
+                        json.dump(memefeed, f, indent=2)
+                os.remove(memedir + legacykey['filename'])
         elif memtype == 'video':
-            await bot.sendVideo(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            try:
+                await bot.sendDocument(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            except UnboundLocalError:
+                oldmeme = await bot.sendVideo(chat_id, legacymeme, reply_to_message_id=reply_id, caption=capvar)
+                print(oldmeme)
+                newid = oldmeme.get('video', {}).get('file_id')
+                if newid is None:
+                    newid = oldmeme.get('document', {}).get('file_id')
+                try:
+                    oldsauce = legacykey['sauce']
+                except KeyError:
+                    oldsauce = ''
+                memedex = { mem : { 'file_id' : newid, 'mtype' : memtype, 'cap' : capvar, 'sauce' : oldsauce } }
+                async with aiofiles.open(memeindex) as f:
+                    memefeed = json.loads(await f.read())
+                memefeed['files'].update(memedex)
+                with lock:
+                    with open(memeindex, 'w') as f:
+                        json.dump(memefeed, f, indent=2)
+                os.remove(memedir + legacykey['filename']);
         elif memtype == 'photo':
-            await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            try:
+                await bot.sendPhoto(chat_id, meme, reply_to_message_id=reply_id, caption=capvar)
+            except UnboundLocalError:
+                oldmeme = await bot.sendPhoto(chat_id, legacymeme, reply_to_message_id=reply_id, caption=capvar)
+                newphoto = oldmeme.get('photo')
+                newid = newphoto[-1]['file_id']
+                try:
+                    oldsauce = legacykey['sauce']
+                except KeyError:
+                    oldsauce = ''
+                memedex = { mem : { 'file_id' : newid, 'mtype' : memtype, 'cap' : capvar, 'sauce' : oldsauce } }
+                async with aiofiles.open(memeindex) as f:
+                    memefeed = json.loads(await f.read())
+                memefeed['files'].update(memedex)
+                with lock:
+                    with open(memeindex, 'w') as f:
+                        json.dump(memefeed, f, indent=2)
+                os.remove(memedir + legacykey['filename']);
         else:
             await bot.sendMessage(chat_id, 'Something went wrong :(', reply_to_message_id=msg_id)
     except UnboundLocalError:
@@ -372,6 +429,7 @@ def on_inline_query(msg):
     with open(memeindex) as f:
         memefeed = json.loads(f.read())
     qstring = query_string.lower()
+    api_key = key['telegram']
     def compute():
         memelobj = []
         quotelobj = []
@@ -389,7 +447,9 @@ def on_inline_query(msg):
             for key, value in d.items():
                 memetitle = key
                 memetype = value['mtype']
-                memename = value['filename']
+                file_id = value['file_id']
+                file_path = requests.get('https://api.telegram.org/bot' + api_key + '/getFile?file_id=' + file_id).json()['result']['file_path']
+                file_url = 'https://api.telegram.org/file/bot' + api_key + '/' + file_path
                 try:
                     memecap = value['cap']
                 except KeyError:
@@ -398,23 +458,23 @@ def on_inline_query(msg):
                     memeslist.append(InlineQueryResultPhoto(
                         id=str(n),
                         title=memetitle,
-                        photo_url=baseurl + 'memes/' + memename,
-                        thumb_url=baseurl + 'memes/' + memename,
+                        photo_url=file_url,
+                        thumb_url=file_url,
                         caption=memecap
                         ))
                 elif memetype == 'video':
                     memeslist.append(InlineQueryResultVideo(
                         id=str(n),
                         title=memetitle,
-                        video_url=baseurl + 'memes/' + memename,
+                        video_url=file_url,
                         mime_type='video/mp4',
-                        thumb_url=baseurl + 'memes/t_' + memename + '.jpg',
+                        thumb_url=file_url,
                         caption=memecap
                         ))
                 elif memetype == 'audio':
                     memeslist.append(InlineQueryResultVoice(
                         id=str(n),
-                        voice_url=baseurl + 'memes/' + memename,
+                        voice_url=file_url,
                         title=memetitle,
                         caption=memecap
                         ))

@@ -4,10 +4,16 @@ import json
 import os
 
 memedir = sys.path[0] + '/memes/'
-memeindex = memedir + 'memeindex.json'
+memeindex = 'memeindex.json'
 
 def files(mname):
     with open(memeindex) as f:
+        memefeed = json.loads(f.read())
+    mlist = memefeed['files']
+    memedict = { mname : mlist[mname] }
+    return memedict
+def legacyfile(mname):
+    with open(memedir + memeindex) as f:
         memefeed = json.loads(f.read())
     mlist = memefeed['files']
     memedict = { mname : mlist[mname] }
