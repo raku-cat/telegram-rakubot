@@ -29,15 +29,8 @@ if not os.path.exists(memeindex):
         json.dump({'files' : {}, 'quotes' : {}}, f)
 lock = Lock()
 
-#filefixer.oggconv()
-#filefixer.mp4thumb()
-
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
-    #print(telepot.flavor(msg))
-    #print(chat_type, content_type, chat_id)
-    #from_id = msg['from']['id']
-    #print(msg)
     try:
         botcom = msg['entities'][0]['type']
         if not botcom == 'bot_command':
@@ -50,13 +43,35 @@ async def on_command(msg):
             reply_id = msg_reply['message_id']
         except TypeError:
             reply_id = 'None'
-        if command == '/store':
-            await bot.sendChatAction(chat_id, 'typing')
-            s = commands.Handler(msg_reply)
-            await bot.sendMessage(chat_id, s.store(command_argument, command_from))
-        if command.startswith('/meme'):
-            await bot.sendChatAction(chat_id, 'typing')
-            await meme_sender(msg)
+        if command_argument is not None:
+            if regex.search(r'\/store(\@raku_bot)\Z', command) is not None:
+                await bot.sendChatAction(chat_id, 'typing')
+                if not utils.Exists(command_argument) and not utils.legacyExists(command_argument):
+                    s = commands.Handler(msg_reply)
+                    if s.store(command_argument, command_from):
+                        await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + command_argument + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+                    else:
+                        await bot.sendMessage(chat_id, 'Something went wrong :\'(', reply_to_message_id=msg_id)
+                else:
+                    await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+            if regex.search(r'\/meme(\@raku_bot)?\Z', command) is not None:
+                await bot.sendChatAction(chat_id, 'typing')
+                if utils.Exists(command_argument):
+                    s = commands.Handler(msg)
+                    gotmeme = s.send(command_argument)
+                    try:
+                        if gotmeme['mtype'] == 'photo':
+                            await bot.sendPhoto(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
+                        if gotmeme['mtype'] == 'video':
+                            await bot.sendVideo(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])               
+                        if gotmeme['mtype'] == 'voice':
+                            await bot.sendVoice(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
+                        if gotmeme['mtype'] == 'document':
+                            await bot.sendDocument(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
+                        if gotmeme['mtype'] == 'audio':
+                            await bot.sendAudio(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
+                    except KeyError:
+                        await bot.sendMessage(chat_id, gotmeme['text'] + '\n  <i>— ' + gotmeme['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
         elif command.startswith('/list') or command.startswith('/start@raku_bot'):
             await bot.sendChatAction(chat_id, 'typing')
             await lister(msg)

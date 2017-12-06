@@ -3,7 +3,7 @@ import json
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
-def parse(msg, content_type):
+def Parse(msg, content_type):
     memedict = {}
     if content_type in ('voice','video','document','audio'):
         m = msg.get(content_type, {})
@@ -20,23 +20,30 @@ def parse(msg, content_type):
     elif content_type == 'text':
         memedict['text'] = msg.get('text')
         try:
-            memedict['author'] = '@' + msg['from']['username']
-        except KeyError:
             memedict['author'] = '@' + msg['forward_from']['username']
+        except KeyError:
+            memedict['author'] = '@' + msg['from']['username']
     else:
         raise Exception('MsgObjError')
     return memedict
-def insert_file(memedict):
-    with open(memeindex, 'r') as f:
-        memefeed = json.load(f)
-    try:
-        memefeed['files'][next (iter (memedict.keys()))]
-        return 'Mem already exist'
-    except KeyError:
-        pass
-    memefeed['files'].update(memedict)
-    with open(memeindex, 'w') as mi:
-        json.dump(memefeed, mi, indent=2)
-    return 'Meme stored'
+
+class Insert:
+
+    def __init__(self, mname):
+        with open(memeindex, 'r') as f:
+            self.memefeed = json.load(f)
+        self.mname = mname
+    
+    def file(self, memedict):
+        self.memefeed['files'].update(memedict)
+        with open(memeindex, 'w') as mi:
+            json.dump(memefeed, mi, indent=2)
+        return True
+
+    def quote(memedict):
+        memefeed['quotes'].update(memedict)
+        with open(memeindex, 'w') as mi:
+            json.dump(memefeed, mi, indent=2)
+        return True
 
 
