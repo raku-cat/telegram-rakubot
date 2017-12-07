@@ -21,7 +21,6 @@ import settings
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
-baseurl = key['baseurl']
 memedir = sys.path[0] + '/memes/'
 memeindex = 'memeindex.json'
 if not os.path.exists(memeindex):
@@ -44,34 +43,29 @@ async def on_command(msg):
         except TypeError:
             reply_id = 'None'
         if command_argument is not None:
-            if regex.search(r'\/store(\@raku_bot)\Z', command) is not None:
-                await bot.sendChatAction(chat_id, 'typing')
-                if not utils.Exists(command_argument) and not utils.legacyExists(command_argument):
-                    s = commands.Handler(msg_reply)
-                    if s.store(command_argument, command_from):
-                        await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + command_argument + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+            if regex.search(r'\/store(\@raku_bot)?\Z', command) is not None:
+                if msg_reply is not None:
+                    await bot.sendChatAction(chat_id, 'typing')
+                    if not utils.Exists(command_argument) and not utils.legacyExists(command_argument):
+                        s = commands.Handler(msg_reply)
+                        if s.store(command_argument, command_from):
+                            await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + command_argument + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
+                        else:
+                            await bot.sendMessage(chat_id, 'Something went wrong :\'(', reply_to_message_id=msg_id)
                     else:
-                        await bot.sendMessage(chat_id, 'Something went wrong :\'(', reply_to_message_id=msg_id)
-                else:
-                    await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
+                        await bot.sendMessage(chat_id, 'Mem already exist :V', reply_to_message_id=msg_id)
             if regex.search(r'\/meme(\@raku_bot)?\Z', command) is not None:
                 await bot.sendChatAction(chat_id, 'typing')
                 if utils.Exists(command_argument):
                     s = commands.Handler(msg)
-                    gotmeme = s.send(command_argument)
-                    try:
-                        if gotmeme['mtype'] == 'photo':
-                            await bot.sendPhoto(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
-                        if gotmeme['mtype'] == 'video':
-                            await bot.sendVideo(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])               
-                        if gotmeme['mtype'] == 'voice':
-                            await bot.sendVoice(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
-                        if gotmeme['mtype'] == 'document':
-                            await bot.sendDocument(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
-                        if gotmeme['mtype'] == 'audio':
-                            await bot.sendAudio(chat_id, gotmeme['file_id'], reply_to_message_id=reply_id, caption=gotmeme['cap'])
-                    except KeyError:
-                        await bot.sendMessage(chat_id, gotmeme['text'] + '\n  <i>— ' + gotmeme['author'] + '</i>', reply_to_message_id=reply_id, parse_mode='html')
+                    sendwith, gotmeme, memekw = s.send(command_argument)
+                    await getattr(bot, sendwith)(chat_id, *gotmeme, **memekw, reply_to_message_id=reply_id)
+                #elif utils.legacyExists(command_argument):
+                #    s = commands.Handler(msg)
+                #    sendwith, gotmeme, memekw = s.send(command_argument)
+                #    await getattr(bot, sendwith)(chat_id, *gotmeme, **memekw, reply_to_message_id=reply_id)
+                else:
+                    await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
         elif command.startswith('/list') or command.startswith('/start@raku_bot'):
             await bot.sendChatAction(chat_id, 'typing')
             await lister(msg)

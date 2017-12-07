@@ -37,13 +37,13 @@ class Insert:
     def file(self, memedict):
         self.memefeed['files'].update(memedict)
         with open(memeindex, 'w') as mi:
-            json.dump(memefeed, mi, indent=2)
+            json.dump(self.memefeed, mi, indent=2)
         return True
 
-    def quote(memedict):
-        memefeed['quotes'].update(memedict)
+    def quote(self, memedict):
+        self.memefeed['quotes'].update(memedict)
         with open(memeindex, 'w') as mi:
-            json.dump(memefeed, mi, indent=2)
+            json.dump(self.memefeed, mi, indent=2)
         return True
 
 

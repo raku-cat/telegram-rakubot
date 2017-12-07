@@ -2,3 +2,5 @@ keys.json
 memes/
 *env/*
 __pycache__/
+*.un*
+memeindex.json
