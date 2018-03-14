@@ -16,13 +16,15 @@ from threading import Lock
 import requests
 import commands
 import utils
+import inline
 import settings
 
 with open(sys.path[0] + '/keys.json', 'r') as f:
     key = json.load(f)
 bot = telepot.aio.Bot(key['telegram'])
-memedir = sys.path[0] + '/memes/'
-memeindex = 'memeindex.json'
+memeindex = settings.PROJECT_ROOT + '/memeindex.json'
+legacy_memeindex = settings.PROJECT_ROOT + '/memes/memeindex.json'
+memedir = settings.PROJECT_ROOT + '/memes/'
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
         json.dump({'files' : {}, 'quotes' : {}}, f)
@@ -46,7 +48,7 @@ async def on_command(msg):
             if regex.search(r'\/store(\@raku_bot)?\Z', command) is not None:
                 if msg_reply is not None:
                     await bot.sendChatAction(chat_id, 'typing')
-                    if not utils.Exists(command_argument) and not utils.legacyExists(command_argument):
+                    if not utils.Exists(command_argument):
                         s = commands.Handler(msg_reply)
                         if s.store(command_argument, command_from):
                             await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + command_argument + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
@@ -434,11 +436,12 @@ async def prayer(msg):
 def on_inline_query(msg):
     query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
     #print(msg)
-    memeslist = []
-    with open(memeindex) as f:
-        memefeed = json.loads(f.read())
-    qstring = query_string.lower()
-    api_key = key['telegram']
+    #memeslist = []
+    #with open(memeindex) as f:
+    #    memefeed = json.loads(f.read())
+    #qstring = query_string.lower()
+    api_key = key
+    inlineObj = inline.Inline(msg, api_key)
     def compute():
         memelobj = []
         quotelobj = []
@@ -507,7 +510,8 @@ def on_inline_query(msg):
         else:
             memeslistfinal = memeslist
         return { 'results' : memeslistfinal, 'cache_time' : 30 }
-    answerer.answer(msg, compute)
+    #print(inlineObj.result(query_string))o
+    answerer.answer(msg, inlineObj.result)
 
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()

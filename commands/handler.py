@@ -19,7 +19,6 @@ class Handler:
             return ins.quote(memedict)
     def send(self, mname):
         memesend = commands.send.getMeme(mname)
-        print('going')
         if memesend:
             pass
         else:
@@ -41,6 +40,5 @@ class Handler:
             except KeyError:
                 return False
         memeattrs = [sendfunc, sendargs, sendkwargs]
-        print('blah')
         return memeattrs
 
