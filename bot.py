@@ -58,14 +58,7 @@ async def on_command(msg):
                     await getattr(bot, sendwith)(chat_id, *gotmeme, **memekw, reply_to_message_id=reply_id)
                 else:
                     await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
-        elif regex.search(r'\/list(\@raku_bot)?\Z', command) is not None or regex.search(r'\/start(\@raku_bot)?\Z', command) is not None:
-            if regex.search(r'\/start(\@raku_bot)?\Z', command) is not None:
-                if command_argument == 'list':
-                    pass
-                else:
-                    return
-            else:
-                pass
+        elif regex.search(r'\/list(\@raku_bot)?\Z', command) is not None or regex.search(r'\/start(\@raku_bot)?\Z', command) is not None and command_argument == 'list':
             await bot.sendChatAction(chat_id, 'typing')
             if utils.isPrivate(msg):
                 await bot.sendMessage(chat_id, commands.lister.getList(), parse_mode='html')
