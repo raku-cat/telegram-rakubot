@@ -10,6 +10,7 @@ def getList():
     for k in memefeed.keys():
         temp.append(list(memefeed[k]))
     temp = temp[0] + temp[1]
+    temp = sorted(temp)
     memlist = list()
     for i in temp:
         formatt = '- ' + i + '\n'
