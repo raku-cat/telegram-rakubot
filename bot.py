@@ -99,7 +99,6 @@ async def on_command(msg):
             from_id = msg['from']['id']
             if from_id == 105301944:
                 if command_argument is not None:
-                    print(command_argument)
                     await bot.sendChatAction(chat_id, 'typing')
                     if utils.Exists(command_argument):
                         if commands.deleter.deleteMeme(command_argument):

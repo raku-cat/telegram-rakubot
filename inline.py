@@ -45,25 +45,16 @@ class Inline:
                 thumb_id = value['thumb_id']
                 async with aiohttp.ClientSession() as asession:
                     async with asession.get('https://api.telegram.org/bot' + self.tel_key + '/getFile?file_id=' + file_id) as resp:
-                        file_path = await resp.json()
-                        file_path = file_path['result']['file_path']
-                trumtype = file_path.split('/')[0]
-                #tele_file_url = 'https://api.telegram.org/file/bot' + self.tel_key + '/' + file_path
-                #thumb_path = requests.get('https://api.telegram.org/bot' + self.tel_key + '/getFile?file_id=' + thumb_id).json()['result']['file_path']
-                #thumb_url = 'https://api.telegram.org/file/bot' + self.tel_key + '/' + thumb_path
-                #imgur_post_obj = {
-                #                'image' : tele_file_url
-                #            }
-                #imgur_post = requests.post('https://api.imgur.com/3/upload.json', headers = {'Authorization' : 'Client-ID ' + self.img_key}, data=imgur_post_obj)
-                #print(imgur_post.json())
-                #if imgur_post.json()['status'] == 200:
-                #    file_url = 'https://i.imgur.com/' + imgur_post.json()['data']['id'] +'.jpg'
-                    #print(file_url)
-                #else:
-                #    return
-                #print(thumb_path)
-                #print(thumb_url)
-
+                        file_path_json = await resp.json()
+                        try:
+                            file_path = file_path_json['result']['file_path']
+                            print(file_path)
+                        except KeyError:
+                            file_path = None
+                try:
+                    trumtype = file_path.split('/')[0]
+                except AttributeError:
+                    pass
                 try:
                     memecap = value['cap']
                 except KeyError:
@@ -73,25 +64,32 @@ class Inline:
                         id=str(n),
                         title=memetitle,
                         photo_file_id=file_id,
-                        #thumb_url=thumb_url,
                         caption=memecap
                         ))
                 elif memetype == 'document':
-                    if trumtype == 'animations':
-                        if file_path.split('.')[0] == 'mp4':
-                            self.memeslist.append(InlineQueryResultCachedMpeg4Gif(
+                    if file_path is not None:
+                        if trumtype == 'animations':
+                            if file_path.split('.')[0] == 'mp4':
+                                self.memeslist.append(InlineQueryResultCachedMpeg4Gif(
+                                id=str(n),
+                                title=memetitle,
+                                mpeg4_file_id=file_id,
+                                caption=memecap
+                                ))
+                            else:
+                                self.memeslist.append(InlineQueryResultCachedGif(
+                                id=str(n),
+                                title=memetitle,
+                                gif_file_id=file_id,
+                                caption=memecap
+                                ))
+                        else:
+                            self.memelist.append(InlineQueryResultCachedDocument(
                             id=str(n),
                             title=memetitle,
-                            mpeg4_file_id=file_id,
+                            document_file_id=file_id,
                             caption=memecap
                             ))
-                        else:
-                            self.memeslist.append(InlineQueryResultCachedGif(
-                            id=str(n),
-                            title=memetitle,
-                            gif_file_id=file_id,
-                            caption=memecap
-                            )) 
                 elif memetype == 'audio':
                     self.memeslist.append(InlineQueryResultVoice(
                         id=str(n),
