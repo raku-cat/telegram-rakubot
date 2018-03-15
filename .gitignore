@@ -4,3 +4,4 @@ memes/
 __pycache__/
 *.un*
 memeindex.json
+*.bak

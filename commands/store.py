@@ -1,5 +1,5 @@
 import settings
-import json
+import ujson
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
@@ -31,19 +31,19 @@ class Insert:
 
     def __init__(self, mname):
         with open(memeindex, 'r') as f:
-            self.memefeed = json.load(f)
+            self.memefeed = ujson.loads(f.read())
         self.mname = mname
     
-    def file(self, memedict):
+    def mfile(self, memedict):
         self.memefeed['files'].update(memedict)
         with open(memeindex, 'w') as mi:
-            json.dump(self.memefeed, mi, indent=2)
+            ujson.dump(self.memefeed, mi, indent=2)
         return True
 
     def quote(self, memedict):
         self.memefeed['quotes'].update(memedict)
         with open(memeindex, 'w') as mi:
-            json.dump(self.memefeed, mi, indent=2)
+            ujson.dump(self.memefeed, mi, indent=2)
         return True
 
 

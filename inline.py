@@ -14,14 +14,14 @@ import requests
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 legacy_memeindex = settings.PROJECT_ROOT + '/memes/memeindex.json'
 memedir = settings.PROJECT_ROOT + '/memes/'
-
+key = settings.getKeys()
 class Inline:
 
-    def __init__(self, msg, api_key):
+    def __init__(self, msg):
         self.query_id, self.from_id, self.query_string = telepot.glance(msg, flavor='inline_query')
         self.memeslist = []
-        self.tel_key = api_key['telegram']
- 
+        self.tel_key = key['telegram']
+
     async def result(self):
         async with aiofiles.open(memeindex) as f:
             self.memefeed = ujson.loads(await f.read())

@@ -1,6 +1,8 @@
 import telepot
 import commands.store
 import commands.send
+import commands.lister
+import commands.sauce
 
 class Handler:
 
@@ -14,9 +16,10 @@ class Handler:
         memedict = { mname : parsed_meme }
         ins = commands.store.Insert(mname)
         if self.content_type in ('voice','video','document','audio','photo'): 
-            return ins.file(memedict)
+            return ins.mfile(memedict)
         elif self.content_type == 'text':
             return ins.quote(memedict)
+    
     def send(self, mname):
         memesend = commands.send.getMeme(mname)
         if memesend:
@@ -41,4 +44,32 @@ class Handler:
                 return False
         memeattrs = [sendfunc, sendargs, sendkwargs]
         return memeattrs
+
+    def sauce(self, mname=None):
+        def byName(mname):
+            memedict = commands.send.getMeme(mname)
+            try:
+                author = memedict['sauce']
+            except KeyError:
+                return False
+            return author
+        def byRef():
+            memeobj = commands.store.Parse(self.msg, self.content_type)
+            try:
+                memeid = memeobj['file_id']
+                mname = commands.sauce.getMemeById(memeid)
+                memedict = commands.send.getMeme(mname)
+            except KeyError:
+                memetext = memeobj['text']
+                mname = commands.sauce.getMemeByText(memetext)
+                memedict = commands.send.getMeme(mname)
+            try:
+                author = memedict['sauce']
+                return author
+            except KeyError:
+                return False
+        if mname is not None:
+            return byName(mname)
+        elif mname is None:
+            return byRef()
 
