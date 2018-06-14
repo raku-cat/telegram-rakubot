@@ -10,18 +10,18 @@ class Handler:
         self.content_type, self.chat_type, self.chat_id, self.msg_date, self.msg_id = telepot.glance(msg, long=True)
         self.msg = msg
 
-    def store(self, mname, sauce):
+    async def store(self, mname, sauce):
         parsed_meme = commands.store.Parse(self.msg, self.content_type)
         parsed_meme['sauce'] = sauce
         memedict = { mname : parsed_meme }
         ins = commands.store.Insert(mname)
-        if self.content_type in ('voice','video','document','audio','photo'): 
-            return ins.mfile(memedict)
+        if self.content_type in ('voice','video','document','audio','photo'):
+            return await ins.mfile(memedict)
         elif self.content_type == 'text':
-            return ins.quote(memedict)
-    
-    def send(self, mname):
-        memesend = commands.send.getMeme(mname)
+            return await ins.quote(memedict)
+
+    async def send(self, mname):
+        memesend = await commands.send.getMeme(mname)
         if memesend:
             pass
         else:
@@ -45,31 +45,31 @@ class Handler:
         memeattrs = [sendfunc, sendargs, sendkwargs]
         return memeattrs
 
-    def sauce(self, mname=None):
-        def byName(mname):
-            memedict = commands.send.getMeme(mname)
+    async def sauce(self, mname=None):
+        async def byName(mname):
+            memedict = await commands.send.getMeme(mname)
             try:
                 author = memedict['sauce']
             except KeyError:
                 return False
             return author
-        def byRef():
+        async def byRef():
             memeobj = commands.store.Parse(self.msg, self.content_type)
             try:
                 memeid = memeobj['file_id']
-                mname = commands.sauce.getMemeById(memeid)
-                memedict = commands.send.getMeme(mname)
+                mname = await commands.sauce.getMemeById(memeid)
+                memedict = await commands.send.getMeme(mname)
             except KeyError:
                 memetext = memeobj['text']
-                mname = commands.sauce.getMemeByText(memetext)
-                memedict = commands.send.getMeme(mname)
+                mname = await commands.sauce.getMemeByText(memetext)
+                memedict = await commands.send.getMeme(mname)
             try:
                 author = memedict['sauce']
                 return author
             except KeyError:
                 return False
         if mname is not None:
-            return byName(mname)
+            return await byName(mname)
         elif mname is None:
-            return byRef()
+            return await byRef()
 

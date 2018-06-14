@@ -9,7 +9,6 @@ from telepot.aio.helper import InlineUserHandler, AnswererMixin
 from telepot.namedtuple import InputTextMessageContent, InlineQueryResultArticle, InlineQueryResultCachedPhoto, InlineQueryResultCachedDocument, InlineQueryResultVoice, InlineQueryResultCachedGif, InlineQueryResultCachedMpeg4Gif, InlineQueryResultAudio
 import regex
 import random
-import requests
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 legacy_memeindex = settings.PROJECT_ROOT + '/memes/memeindex.json'
@@ -32,10 +31,10 @@ class Inline:
         qlist = self.memefeed['quotes']
         for i in list(mlist.keys()):
             if regex.search(qstring, i):
-                memelobj.append({i : commands.send.getMeme(i)})
+                memelobj.append({i : await commands.send.getMeme(i)})
         for i in list(qlist.keys()):
             if regex.search(qstring, i):
-                quotelobj.append({i : commands.send.getMeme(i)})
+                quotelobj.append({i : await commands.send.getMeme(i)})
         rnint = random.sample(range(5000), 50)
         for d, n in zip(memelobj, rnint):
             for key, value in d.items():
@@ -48,7 +47,7 @@ class Inline:
                         file_path_json = await resp.json()
                         try:
                             file_path = file_path_json['result']['file_path']
-                            print(file_path)
+                            #print(file_path)
                         except KeyError:
                             file_path = None
                 try:

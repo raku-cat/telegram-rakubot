@@ -1,11 +1,12 @@
 import settings
 import ujson
+import aiofiles
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
-def getList():
-    with open(memeindex) as f:
-        memefeed = ujson.loads(f.read())
+async def getList():
+    async with aiofiles.open(memeindex) as f:
+        memefeed = ujson.loads(await f.read())
     temp = list()
     for k in memefeed.keys():
         temp.append(list(memefeed[k]))

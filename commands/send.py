@@ -1,11 +1,12 @@
 import ujson
 import settings
+import aiofiles
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
-def getMeme(mname):
-    with open(memeindex, 'r') as mi:
-        memefeed = ujson.loads(mi.read())
+async def getMeme(mname):
+    async with aiofiles.open(memeindex, 'r') as mi:
+        memefeed = ujson.loads(await mi.read())
     mememix = {}
     for i in memefeed.keys():
         indvmeme = memefeed.get(i)

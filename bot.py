@@ -41,9 +41,9 @@ async def on_command(msg):
         if regex.search(r'\/store(\@raku_bot)?\Z', command) is not None:
             if msg_reply is not None:
                 await bot.sendChatAction(chat_id, 'typing')
-                if not utils.Exists(command_argument):
+                if not await utils.Exists(command_argument):
                     s = commands.Handler(msg_reply)
-                    if s.store(command_argument, command_from):
+                    if await s.store(command_argument, command_from):
                         await bot.sendMessage(chat_id, 'Meme stored, meme with `/meme ' + command_argument + '`', parse_mode='Markdown', reply_to_message_id=msg_id)
                     else:
                         await bot.sendMessage(chat_id, 'Something went wrong :\'(', reply_to_message_id=msg_id)
@@ -52,16 +52,16 @@ async def on_command(msg):
         if regex.search(r'\/meme(\@raku_bot)?\Z', command) is not None:
             if command_argument is not None:
                 await bot.sendChatAction(chat_id, 'typing')
-                if utils.Exists(command_argument):
+                if await utils.Exists(command_argument):
                     s = commands.Handler(msg)
-                    sendwith, gotmeme, memekw = s.send(command_argument)
+                    sendwith, gotmeme, memekw = await s.send(command_argument)
                     await getattr(bot, sendwith)(chat_id, *gotmeme, **memekw, reply_to_message_id=reply_id)
                 else:
                     await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
         elif regex.search(r'\/list(\@raku_bot)?\Z', command) is not None or regex.search(r'\/start(\@raku_bot)?\Z', command) is not None and command_argument == 'list':
             await bot.sendChatAction(chat_id, 'typing')
             if utils.isPrivate(msg):
-                await bot.sendMessage(chat_id, commands.lister.getList(), parse_mode='html')
+                await bot.sendMessage(chat_id, await commands.lister.getList(), parse_mode='html')
             else:
                 await bot.sendMessage(chat_id, '<a href="http://telegram.me/raku_bot?start=list">Ask in PM pls</a>', reply_to_message_id=msg_id, parse_mode='html', disable_web_page_preview=True)
         elif regex.search(r'\/sauce(\@raku_bot)?\Z', command) is not None:
@@ -69,16 +69,16 @@ async def on_command(msg):
                 await bot.sendChatAction(chat_id, 'typing')
             if msg_reply is None:
                 if command_argument is not None:
-                    if utils.Exists(command_argument):
+                    if await utils.Exists(command_argument):
                         s = commands.Handler(msg)
-                        author = s.sauce(command_argument)
+                        author = await s.sauce(command_argument)
                     else:
                         await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
                 else:
                     return
             elif msg_reply is not None:
                 s = commands.Handler(msg_reply)
-                author = s.sauce()
+                author = await s.sauce()
             try:
                 if author:
                     await bot.sendMessage(chat_id, 'this was @' + author + ' tbh.......', reply_to_message_id=msg_id)
@@ -88,9 +88,9 @@ async def on_command(msg):
                 return
         elif regex.search(r'\/lucc(\@raku_bot)?\Z', command) is not None:
             await bot.sendChatAction(chat_id, 'typing')
-            luckymeme = commands.lucc.getLucc()
+            luckymeme = await commands.lucc.getLucc()
             s = commands.Handler(msg)
-            sendwith, gotmeme, memekw = s.send(luckymeme)
+            sendwith, gotmeme, memekw = await s.send(luckymeme)
             await getattr(bot, sendwith)(chat_id, *gotmeme, **memekw, reply_to_message_id=reply_id)
         elif regex.search(r'\/pray(\@raku_bot)?\Z', command) is not None:
             await bot.sendChatAction(chat_id, 'typing')
@@ -100,8 +100,8 @@ async def on_command(msg):
             if from_id == 105301944:
                 if command_argument is not None:
                     await bot.sendChatAction(chat_id, 'typing')
-                    if utils.Exists(command_argument):
-                        if commands.deleter.deleteMeme(command_argument):
+                    if await utils.Exists(command_argument):
+                        if await commands.deleter.deleteMeme(command_argument):
                             await bot.sendMessage(chat_id, 'Meme baleet >:U', reply_to_message_id=msg_id)
                     else:
                         await bot.sendMessage(chat_id, 'Meme not found', reply_to_message_id=msg_id)
