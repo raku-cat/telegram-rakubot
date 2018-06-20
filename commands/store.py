@@ -1,5 +1,5 @@
 import settings
-import ujson
+import json
 import aiofiles
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
@@ -32,19 +32,19 @@ class Insert:
 
     def __init__(self, mname):
         with open(memeindex, 'r') as f:
-            self.memefeed = ujson.loads(f.read())
+            self.memefeed = json.loads(f.read())
         self.mname = mname
 
     async def mfile(self, memedict):
         self.memefeed['files'].update(memedict)
         async with aiofiles.open(memeindex, 'w') as mi:
-            await mi.write(ujson.dumps(self.memefeed))
+            await mi.write(json.dumps(self.memefeed))
         return True
 
     async def quote(self, memedict):
         self.memefeed['quotes'].update(memedict)
         async with aiofiles.open(memeindex, 'w') as mi:
-            await mi.write(ujson.dumps(self.memefeed))
+            await mi.write(json.dumps(self.memefeed))
         return True
 
 

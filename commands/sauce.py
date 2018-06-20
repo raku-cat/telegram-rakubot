@@ -1,12 +1,12 @@
 import settings
-import ujson
+import json
 import aiofiles
 
 memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
 async def getMemeById(memeid):
     async with aiofiles.open(memeindex, 'r') as mi:
-        memefeed = ujson.loads(await mi.read())
+        memefeed = json.loads(await mi.read())
     mememix = {}
     for i in memefeed.keys():
         indvmeme = memefeed.get('files')
@@ -17,7 +17,7 @@ async def getMemeById(memeid):
 
 async def getMemeByText(memetext):
     async with aiofiles.open(memeindex, 'r') as mi:
-        memefeed = ujson.loads(await mi.read())
+        memefeed = json.loads(await mi.read())
     mememix = {}
     for i in memefeed.keys():
         indvmeme = memefeed.get('quotes')

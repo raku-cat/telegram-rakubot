@@ -1,5 +1,5 @@
 import settings
-import ujson
+import json
 import asyncio
 import commands
 import aiofiles
@@ -23,7 +23,7 @@ class Inline:
 
     async def result(self):
         async with aiofiles.open(memeindex) as f:
-            self.memefeed = ujson.loads(await f.read())
+            self.memefeed = json.loads(await f.read())
         qstring = self.query_string.lower()
         memelobj = []
         quotelobj = []

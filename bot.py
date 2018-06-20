@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import settings
-import ujson
+import json
 import os
 import regex
 import telepot, telepot.aio
@@ -22,7 +22,7 @@ bot = telepot.aio.Bot(key['telegram'])
 
 if not os.path.exists(memeindex):
     with open(memeindex, 'w') as f:
-        ujson.dump({'files' : {}, 'quotes' : {}}, f)
+        json.dump({'files' : {}, 'quotes' : {}}, f)
 
 async def on_command(msg):
     content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)

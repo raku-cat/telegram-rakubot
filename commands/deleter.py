@@ -1,4 +1,4 @@
-import ujson
+import json
 import settings
 import aiofiles
 
@@ -6,7 +6,7 @@ memeindex = settings.PROJECT_ROOT + '/memeindex.json'
 
 async def deleteMeme(mname):
     async with aiofiles.open(memeindex) as f:
-        memefeed = ujson.loads(await f.read())
+        memefeed = json.loads(await f.read())
     try:
         del memefeed['files'][mname]
     except KeyError:
@@ -15,6 +15,6 @@ async def deleteMeme(mname):
         except KeyError:
             return False
     async with aiofiles.open(memeindex, 'w') as f:
-        await f.write(ujson.dumps(memefeed))
+        await f.write(json.dumps(memefeed))
     return True
 
